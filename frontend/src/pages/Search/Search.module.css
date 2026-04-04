@@ -1,0 +1,259 @@
+.page {
+  padding-top: var(--space-xl);
+  padding-bottom: var(--space-3xl);
+}
+
+.topBar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
+}
+
+.nearbyBtn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--color-primary), #0284c7);
+  color: white;
+  font-size: var(--font-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  width: fit-content;
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.2);
+}
+
+.nearbyBtn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(5, 150, 105, 0.3);
+}
+
+.nearbyBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.filterToggle {
+  padding: 8px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: #ffffff;
+  color: var(--color-text);
+  font-size: var(--font-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.filterToggle:hover { border-color: var(--color-primary); }
+
+.sortSelect {
+  padding: 8px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: #ffffff;
+  color: var(--color-text);
+  font-size: var(--font-sm);
+  outline: none;
+}
+
+.sortSelect option { background: #ffffff; }
+
+.layout {
+  display: flex;
+  gap: var(--space-xl);
+}
+
+.sidebar {
+  width: 280px;
+  flex-shrink: 0;
+}
+
+.results { flex: 1; min-width: 0; }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-lg);
+}
+
+.empty {
+  text-align: center;
+  padding: var(--space-3xl);
+  color: var(--color-text-secondary);
+}
+
+.emptyIcon { font-size: 3rem; margin-bottom: var(--space-md); }
+
+.empty h3 {
+  font-size: var(--font-xl);
+  margin-bottom: var(--space-sm);
+  color: var(--color-text);
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-2xl);
+}
+
+.pageBtn {
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: #ffffff;
+  color: var(--color-text);
+  font-size: var(--font-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.pageBtn:hover { border-color: var(--color-primary); }
+
+.activePage {
+  background: var(--color-primary);
+  color: #ffffff;
+  border-color: var(--color-primary);
+}
+
+@media (max-width: 900px) {
+  .layout { flex-direction: column; }
+  .sidebar { width: 100%; }
+  .controls { flex-wrap: wrap; }
+}
+
+@media (max-width: 480px) {
+  .grid { grid-template-columns: 1fr; }
+  .page { padding-top: var(--space-md); }
+
+  .nearbyBtn {
+    width: 100%;
+    padding: 12px 20px;
+    font-size: var(--font-md);
+  }
+
+  .controls {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .filterToggle, .sortSelect {
+    width: 100%;
+    padding: 10px 16px;
+  }
+
+  .modal {
+    width: 95%;
+    padding: var(--space-lg);
+  }
+
+  .modalActions {
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .cancelBtn, .confirmBtn {
+    width: 100%;
+    padding: 12px 20px;
+  }
+
+  .dateInput {
+    padding: 14px;
+    font-size: var(--font-md);
+  }
+}
+
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.modal {
+  background: #ffffff;
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  max-width: 400px;
+  width: 90%;
+  box-shadow: var(--shadow-xl);
+}
+
+.modal h3 {
+  margin: 0 0 var(--space-sm) 0;
+  font-size: var(--font-xl);
+  color: var(--color-text);
+}
+
+.modal p {
+  margin: 0 0 var(--space-lg) 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-sm);
+}
+
+.dateInput {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-input);
+  color: var(--color-text);
+  font-size: var(--font-md);
+  margin-bottom: var(--space-lg);
+  outline: none;
+}
+
+.dateInput:focus {
+  border-color: var(--color-primary);
+}
+
+.modalActions {
+  display: flex;
+  gap: var(--space-md);
+  justify-content: flex-end;
+}
+
+.cancelBtn, .confirmBtn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--font-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.cancelBtn {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.cancelBtn:hover {
+  background: var(--color-surface-hover);
+}
+
+.confirmBtn {
+  background: var(--color-primary);
+  color: white;
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.2);
+}
+
+.confirmBtn:hover {
+  background: var(--color-primary-hover);
+}

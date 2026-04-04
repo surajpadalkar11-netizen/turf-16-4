@@ -1,0 +1,156 @@
+.turfs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-lg);
+}
+
+.turf-card { padding: 0; overflow: hidden; }
+
+.turf-card-img {
+  position: relative;
+  height: 160px;
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+.turf-card-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--transition-base);
+}
+
+.turf-card:hover .turf-card-img img {
+  transform: scale(1.05);
+}
+
+.turf-card-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+}
+
+.turf-status {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: var(--font-xs);
+  font-weight: 600;
+}
+
+.turf-status.active { background: var(--color-success-light); color: var(--color-success); }
+.turf-status.inactive { background: var(--color-danger-light); color: var(--color-danger); }
+
+.turf-card-body {
+  padding: var(--space-lg);
+}
+
+.turf-card-body h3 {
+  font-size: var(--font-base);
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: var(--color-text);
+}
+
+.turf-card-location {
+  font-size: var(--font-xs);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-sm);
+}
+
+.turf-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: var(--space-md);
+}
+
+.turf-tag {
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.turf-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-md);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-border);
+}
+
+.turf-price {
+  font-size: var(--font-lg);
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.turf-price small {
+  font-size: var(--font-xs);
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.turf-rating {
+  font-size: var(--font-sm);
+  color: var(--color-text-secondary);
+}
+
+.turf-card-actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.turf-card-actions .btn { flex: 1; justify-content: center; }
+
+/* Modal specifics */
+.turf-modal {
+  max-width: 700px;
+  max-height: 90vh;
+  overflow-y: auto;
+  margin: auto;
+}
+
+.chip-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-input);
+  color: var(--color-text-secondary);
+  font-size: var(--font-xs);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-transform: capitalize;
+}
+
+.chip:hover { border-color: var(--color-primary); }
+.chip-active {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.image-field {
+  display: flex;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.image-field .input { flex: 1; }

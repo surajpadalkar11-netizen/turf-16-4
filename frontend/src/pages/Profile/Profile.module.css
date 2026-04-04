@@ -1,0 +1,120 @@
+.page {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-2xl) var(--space-lg);
+}
+
+.card {
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-2xl);
+  width: 100%;
+  max-width: 480px;
+  box-shadow: var(--shadow-md);
+}
+
+.avatarSection {
+  text-align: center;
+  margin-bottom: var(--space-xl);
+}
+
+.avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-2xl);
+  font-weight: 700;
+  margin: 0 auto var(--space-md);
+}
+
+.email {
+  color: var(--color-text-muted);
+  font-size: var(--font-sm);
+}
+
+.role {
+  display: inline-block;
+  margin-top: var(--space-sm);
+  padding: 4px 12px;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  border-radius: 20px;
+  font-size: var(--font-xs);
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.message {
+  text-align: center;
+  color: var(--color-success);
+  font-size: var(--font-sm);
+  margin-bottom: var(--space-md);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.field label {
+  display: block;
+  font-size: var(--font-sm);
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.field input {
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  font-size: var(--font-sm);
+  outline: none;
+}
+
+.field input:focus { border-color: var(--color-primary); }
+
+.saveBtn {
+  width: 100%;
+  padding: 12px;
+  background: var(--color-primary);
+  color: #ffffff;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  margin-top: var(--space-sm);
+}
+
+.saveBtn:hover:not(:disabled) { background: var(--color-primary-hover); }
+.saveBtn:disabled { opacity: 0.5; }
+
+.logoutBtn {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--color-danger);
+  font-size: var(--font-sm);
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: var(--space-lg);
+  transition: all var(--transition-fast);
+}
+
+.logoutBtn:hover {
+  background: var(--color-danger);
+  color: white;
+}
