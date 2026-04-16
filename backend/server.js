@@ -20,6 +20,9 @@ const turfOwnerRoutes = require('./routes/turfOwnerRoutes');
 
 const app = express();
 
+// Trust the reverse proxy (Render) so express-rate-limit works correctly
+app.set('trust proxy', 1);
+
 // Compression — reduces API response sizes by 60-80%
 app.use(compression({
   level: 6, // balanced speed vs compression ratio
