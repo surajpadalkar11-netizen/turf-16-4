@@ -7,11 +7,11 @@ import { createPaymentOrder, verifyPayment } from '../../services/paymentService
 import { formatPrice, formatDate, formatTime } from '../../utils/formatters';
 import styles from './Booking.module.css';
 
-const ADVANCE_OPTIONS = (total) => [
-  { label: '₹100 Advance', value: 100 },
-  { label: '₹200 Advance', value: 200 },
-  { label: '₹500 Advance', value: 500 },
-  { label: 'Pay Full', value: total },
+// Percentage-based advance options
+const ADVANCE_OPTIONS = [
+  { label: '25% Advance', percent: 25, description: 'Pay a quarter upfront' },
+  { label: '50% Advance', percent: 50, description: 'Pay half upfront' },
+  { label: 'Full Payment',  percent: 100, description: 'Pay complete amount' },
 ];
 
 function Booking() {
@@ -23,10 +23,7 @@ function Booking() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(null);
-  const [payMode, setPayMode] = useState('full'); // 'full' | 'partial'
-  const [advanceAmt, setAdvanceAmt] = useState(100);
-  const [customAmt, setCustomAmt] = useState('');
-  const [useCustom, setUseCustom] = useState(false);
+  const [selectedPercent, setSelectedPercent] = useState(100); // default full pay
 
   if (!user) {
     navigate('/login');
@@ -39,9 +36,8 @@ function Booking() {
     return (
       <div className="container" style={{ padding: '60px 0', textAlign: 'center' }}>
         <div style={{ maxWidth: 500, margin: '0 auto', background: '#ffffff', borderRadius: 20, padding: '48px 36px', boxShadow: '0 8px 40px rgba(0,0,0,0.10)', border: '1px solid #e2e8f0' }}>
-          <div style={{ fontSize: 64, marginBottom: 16 }}>{isPartial ? '⚠️' : '🎉'}</div>
           <h2 style={{ color: isPartial ? '#f59e0b' : '#059669', marginBottom: 8 }}>
-            {isPartial ? 'Advance Paid!' : 'Booking Confirmed!'}
+            {isPartial ? 'Advance Paid Successfully' : 'Booking Confirmed!'}
           </h2>
           <p style={{ color: '#475569', marginBottom: 24 }}>
             {isPartial
@@ -56,12 +52,12 @@ function Booking() {
               <span style={{ fontWeight: 700 }}>₹{success.totalAmount}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-              <span style={{ color: '#10b981', fontSize: 14 }}>✅ Paid Now</span>
+              <span style={{ color: '#10b981', fontSize: 14 }}>Paid Now</span>
               <span style={{ fontWeight: 700, color: '#10b981' }}>₹{success.amountPaid}</span>
             </div>
             {isPartial && (
               <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #e2e8f0', paddingTop: 8 }}>
-                <span style={{ color: '#f59e0b', fontSize: 14 }}>⚠️ Due at Venue</span>
+                <span style={{ color: '#f59e0b', fontSize: 14 }}>Due at Venue</span>
                 <span style={{ fontWeight: 700, color: '#f59e0b' }}>₹{success.remainingAmount}</span>
               </div>
             )}
@@ -91,22 +87,18 @@ function Booking() {
   }
 
   const totalAmount = bookingData.totalAmount;
-  const selectedAdvance = useCustom
-    ? Math.min(Math.max(Number(customAmt) || 0, 1), totalAmount)
-    : advanceAmt;
-  const payNow = payMode === 'full' ? totalAmount : selectedAdvance;
+  const isFullPay = selectedPercent === 100;
+  const payNow = isFullPay ? totalAmount : Math.round((selectedPercent / 100) * totalAmount);
   const remaining = totalAmount - payNow;
+
+  // Total duration in minutes and hours
+  const totalDurationMin = bookingData.selectedSlots.reduce((s, sl) => s + (sl.durationMinutes || 60), 0);
+  const totalHours = (totalDurationMin / 60).toFixed(1).replace('.0', '');
 
   // ── Payment Handler ─────────────────────────────────────────────
   const handlePayment = async () => {
     setLoading(true);
     setError('');
-
-    if (payMode === 'partial' && payNow < 1) {
-      setError('Please enter a valid advance amount.');
-      setLoading(false);
-      return;
-    }
 
     try {
       // Step 1: Create booking in DB
@@ -128,15 +120,15 @@ function Booking() {
         return;
       }
 
+      const payLabel = isFullPay ? 'Full payment' : `${selectedPercent}% advance`;
+
       // Step 3: Open Razorpay checkout modal
       const options = {
         key: orderRes.key,
         amount: orderRes.order.amount,
         currency: orderRes.order.currency,
         name: 'turf11',
-        description: payMode === 'partial'
-          ? `Advance ₹${payNow} for ${bookingData.turf.name}`
-          : `Full payment for ${bookingData.turf.name}`,
+        description: `${payLabel} for ${bookingData.turf.name}`,
         order_id: orderRes.order.id,
         handler: async (response) => {
           try {
@@ -154,7 +146,7 @@ function Booking() {
               totalAmount,
               amountPaid: verifyRes.data?.amountPaid || payNow,
               remainingAmount: verifyRes.data?.remainingAmount || remaining,
-              paymentStatus: verifyRes.data?.paymentStatus || (payMode === 'full' ? 'paid' : 'partially_paid'),
+              paymentStatus: verifyRes.data?.paymentStatus || (isFullPay ? 'paid' : 'partially_paid'),
               turfName: bookingData.turf.name,
             });
           } catch {
@@ -193,7 +185,7 @@ function Booking() {
           <div className={styles.card}>
             <h3>Turf Details</h3>
             <p className={styles.turfName}>{bookingData.turf.name}</p>
-            <p className={styles.turfAddr}>📍 {bookingData.turf.address?.city}, {bookingData.turf.address?.state}</p>
+            <p className={styles.turfAddr}>{bookingData.turf.address?.city}, {bookingData.turf.address?.state}</p>
           </div>
 
           <div className={styles.card}>
@@ -205,12 +197,22 @@ function Booking() {
             <div className={styles.row}>
               <span>Time Slots</span>
               <div className={styles.slotList}>
-                {bookingData.selectedSlots.map((s) => (
-                  <span key={s.start} className={styles.slotChip}>
-                    {formatTime(s.start)} – {formatTime(s.end)}
-                  </span>
-                ))}
+                {bookingData.selectedSlots.map((s) => {
+                  const isPeak = s.priceUsed && bookingData.turf.peakPricePerHour && s.priceUsed === bookingData.turf.peakPricePerHour;
+                  const dur = s.durationMinutes || 60;
+                  return (
+                    <span key={s.start} className={`${styles.slotChip} ${isPeak ? styles.peakSlot : ''}`}>
+                      {formatTime(s.start)} – {formatTime(s.end)}
+                      {dur !== 60 && <span className={styles.halfBadge}>{dur}m</span>}
+                      {isPeak && <span className={styles.peakBadge}>🌙</span>}
+                    </span>
+                  );
+                })}
               </div>
+            </div>
+            <div className={styles.row}>
+              <span>Total Duration</span>
+              <span><strong>{totalDurationMin} min</strong> ({totalHours} hr{totalHours !== '1' ? 's' : ''})</span>
             </div>
           </div>
 
@@ -239,62 +241,35 @@ function Booking() {
             </div>
           </div>
 
-          {/* ── Advance Payment Section ── */}
+          {/* ── Payment Options Section ── */}
           <div className={styles.card}>
-            <h3>Payment Mode</h3>
-            <div className={styles.payModeRow}>
-              <button
-                className={`${styles.payModeBtn} ${payMode === 'full' ? styles.payModeActive : ''}`}
-                onClick={() => setPayMode('full')}
-              >
-                💳 Pay Full Amount
-              </button>
-              <button
-                className={`${styles.payModeBtn} ${payMode === 'partial' ? styles.payModeActive : ''}`}
-                onClick={() => setPayMode('partial')}
-              >
-                ⚡ Pay Advance
-              </button>
+            <h3>Payment Options</h3>
+            <p className={styles.paymentHint}>Choose how much you'd like to pay now:</p>
+            <div className={styles.paymentOptionsGrid}>
+              {ADVANCE_OPTIONS.map((opt) => {
+                const amt = opt.percent === 100 ? totalAmount : Math.round((opt.percent / 100) * totalAmount);
+                const isActive = selectedPercent === opt.percent;
+                return (
+                  <button
+                    key={opt.percent}
+                    className={`${styles.payOptionCard} ${isActive ? styles.payOptionActive : ''}`}
+                    onClick={() => setSelectedPercent(opt.percent)}
+                    id={`pay-option-${opt.percent}`}
+                  >
+                    <span className={styles.payOptionLabel}>{opt.label}</span>
+                    <span className={styles.payOptionAmount}>{formatPrice(amt)}</span>
+                    <span className={styles.payOptionDesc}>{opt.description}</span>
+                    {isActive && <span className={styles.payOptionCheck}>✓</span>}
+                  </button>
+                );
+              })}
             </div>
 
-            {payMode === 'partial' && (
-              <div className={styles.advanceSection}>
-                <p className={styles.adviceNote}>
-                  💡 Pay a small advance now, pay the rest at the turf.
-                </p>
-                <div className={styles.advanceOptions}>
-                  {ADVANCE_OPTIONS(totalAmount)
-                    .filter((opt) => opt.value < totalAmount)
-                    .map((opt) => (
-                      <button
-                        key={opt.value}
-                        className={`${styles.advanceChip} ${!useCustom && advanceAmt === opt.value ? styles.advanceChipActive : ''}`}
-                        onClick={() => { setAdvanceAmt(opt.value); setUseCustom(false); }}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  <button
-                    className={`${styles.advanceChip} ${useCustom ? styles.advanceChipActive : ''}`}
-                    onClick={() => setUseCustom(true)}
-                  >
-                    Custom
-                  </button>
-                </div>
-                {useCustom && (
-                  <div className={styles.customAmtRow}>
-                    <span className={styles.rupeeSign}>₹</span>
-                    <input
-                      type="number"
-                      min="1"
-                      max={totalAmount - 1}
-                      value={customAmt}
-                      onChange={(e) => setCustomAmt(e.target.value)}
-                      placeholder={`Max ₹${totalAmount - 1}`}
-                      className={styles.customAmtInput}
-                    />
-                  </div>
-                )}
+            {selectedPercent < 100 && (
+              <div className={styles.remainderNote}>
+                <span>
+                  Remaining <strong>{formatPrice(remaining)}</strong> ({100 - selectedPercent}%) to be paid at the venue before playing.
+                </span>
               </div>
             )}
           </div>
@@ -307,23 +282,23 @@ function Booking() {
             <span>{formatPrice(bookingData.turf.pricePerHour)}</span>
           </div>
           <div className={styles.row}>
-            <span>Hours</span>
-            <span>× {bookingData.selectedSlots.length}</span>
+            <span>Duration</span>
+            <span>{totalDurationMin} min</span>
           </div>
           <div className={`${styles.row} ${styles.totalRow}`}>
             <strong>Total Amount</strong>
             <strong className={styles.totalAmount}>{formatPrice(totalAmount)}</strong>
           </div>
 
-          {payMode === 'partial' && (
+          {selectedPercent < 100 && (
             <>
               <div style={{ borderTop: '1px dashed #e2e8f0', margin: '12px 0' }} />
               <div className={styles.row}>
-                <span style={{ color: '#10b981', fontWeight: 600 }}>✅ Pay Now (Advance)</span>
+                <span style={{ color: '#10b981', fontWeight: 600 }}>Pay Now ({selectedPercent}%)</span>
                 <span style={{ color: '#10b981', fontWeight: 700 }}>{formatPrice(payNow)}</span>
               </div>
               <div className={styles.row}>
-                <span style={{ color: '#f59e0b', fontWeight: 600 }}>⚠️ Due at Venue</span>
+                <span style={{ color: '#f59e0b', fontWeight: 600 }}>Due at Venue</span>
                 <span style={{ color: '#f59e0b', fontWeight: 700 }}>{formatPrice(remaining)}</span>
               </div>
             </>
@@ -334,11 +309,29 @@ function Booking() {
           <button className={styles.payBtn} onClick={handlePayment} disabled={loading} id="pay-btn">
             {loading
               ? 'Processing...'
-              : payMode === 'full'
-              ? `Pay ${formatPrice(totalAmount)}`
-              : `Pay Advance ${formatPrice(payNow)}`}
+              : selectedPercent === 100
+              ? `Pay Full ${formatPrice(totalAmount)}`
+              : `Pay ${selectedPercent}% – ${formatPrice(payNow)}`}
           </button>
-          <p className={styles.secure}>🔒 Secured by Razorpay</p>
+          <p className={styles.secure}>Secured by Razorpay</p>
+
+          {/* Payment breakdown visual */}
+          {selectedPercent < 100 && (
+            <div className={styles.progressBar}>
+              <div
+                className={styles.progressFill}
+                style={{ width: `${selectedPercent}%` }}
+              />
+              <div className={styles.progressLabels}>
+                <span style={{ color: '#10b981', fontSize: 11, fontWeight: 700 }}>
+                  {selectedPercent}% now
+                </span>
+                <span style={{ color: '#f59e0b', fontSize: 11, fontWeight: 700 }}>
+                  {100 - selectedPercent}% at venue
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

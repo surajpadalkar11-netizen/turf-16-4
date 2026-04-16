@@ -1,4 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@400;600;700;800&display=swap');
+/* Fonts are loaded non-blocking via index.html preconnect + media=print trick */
+/* Fallback system font stack while loading */
 
 :root {
   /* ── Core Palette (Clean White) ── */
@@ -365,3 +366,31 @@ ul, ol { list-style: none; }
     --font-5xl: 2.5rem;
   }
 }
+
+@media (max-width: 480px) {
+  .container { padding: 0 var(--space-sm); }
+  :root {
+    --font-3xl: 1.4rem;
+    --font-4xl: 1.75rem;
+    --font-2xl: 1.3rem;
+    --space-3xl: 3rem;
+  }
+}
+
+/* ── Touch improvements ── */
+@media (hover: none) {
+  .card:hover { transform: none; }
+  .btn:hover { transform: none; }
+}
+
+/* ── Utility classes ── */
+.flex-center { display: flex; align-items: center; justify-content: center; }
+.text-center { text-align: center; }
+.w-full { width: 100%; }
+
+/* ── Focus visible for accessibility ── */
+*:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+

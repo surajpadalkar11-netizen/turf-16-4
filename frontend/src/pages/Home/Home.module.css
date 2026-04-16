@@ -22,9 +22,11 @@
   inset: 0;
   background:
     linear-gradient(135deg, rgba(5, 150, 105, 0.08) 0%, transparent 60%),
-    url('https://images.unsplash.com/photo-1529900748604-07564a03e7a6?w=1800&q=80') center / cover no-repeat;
+    url('https://images.unsplash.com/photo-1529900748604-07564a03e7a6?w=1200&q=75&auto=format') center / cover no-repeat;
   filter: brightness(0.3) saturate(0.9);
   z-index: 0;
+  /* tell browser this layer will be composited for better perf */
+  will-change: transform;
 }
 
 .heroContent {

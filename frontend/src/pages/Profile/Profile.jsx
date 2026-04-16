@@ -32,7 +32,11 @@ function Profile() {
     <div className={`container ${styles.page}`}>
       <div className={styles.card}>
         <div className={styles.avatarSection}>
-          <div className={styles.avatar}>{user.name?.charAt(0).toUpperCase()}</div>
+          {user.avatar ? (
+            <img src={user.avatar} alt={user.name} className={styles.avatarImg} />
+          ) : (
+            <div className={styles.avatar}>{user.name?.charAt(0).toUpperCase()}</div>
+          )}
           <h2>{user.name}</h2>
           <p className={styles.email}>{user.email}</p>
           <span className={styles.role}>{user.role}</span>

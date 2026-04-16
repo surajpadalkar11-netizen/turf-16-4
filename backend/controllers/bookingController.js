@@ -29,7 +29,7 @@ exports.createBooking = asyncHandler(async (req, res) => {
 
   const { data: turf, error: turfErr } = await supabase
     .from('turfs')
-    .select('id, price_per_hour, name, images, street, city, state, pincode, owner_email')
+    .select('id, price_per_hour, peak_hour_start, peak_hour_end, peak_price_per_hour, name, images, street, city, state, pincode, owner_email')
     .eq('id', turfId)
     .single();
 
@@ -56,7 +56,33 @@ exports.createBooking = asyncHandler(async (req, res) => {
     });
   }
 
-  const totalAmount = timeSlots.length * turf.price_per_hour;
+  // Calculate total: each slot's cost = (durationMinutes / 60) * pricePerHour
+  // Supports both 30-min (half) and 60-min (full hour) slots
+  // Apply peak pricing if slot falls within peak hours
+  const totalAmount = timeSlots.reduce((sum, slot) => {
+    const durationHours = (slot.durationMinutes || 60) / 60;
+
+    // Check if slot is in peak hours
+    let priceToUse = turf.price_per_hour;
+    if (turf.peak_price_per_hour && turf.peak_hour_start && turf.peak_hour_end) {
+      const slotStart = slot.start; // e.g., "18:00"
+      const peakStart = turf.peak_hour_start; // e.g., "18:00"
+      const peakEnd = turf.peak_hour_end; // e.g., "23:00"
+
+      // Time comparison supporting overnight spans (e.g. 18:00 to 07:00)
+      if (peakStart > peakEnd) {
+        if (slotStart >= peakStart || slotStart < peakEnd) {
+          priceToUse = turf.peak_price_per_hour;
+        }
+      } else {
+        if (slotStart >= peakStart && slotStart < peakEnd) {
+          priceToUse = turf.peak_price_per_hour;
+        }
+      }
+    }
+
+    return sum + durationHours * priceToUse;
+  }, 0);
 
   // Validate advance amount
   const parsedAdvance = Number(advanceAmount) || 0;
@@ -227,7 +253,6 @@ exports.getTurfBookings = asyncHandler(async (req, res) => {
     .from('bookings')
     .select('*, user:user_id(id, name, email, phone)', { count: 'exact' })
     .eq('turf_id', turfId)
-    .order('date', { ascending: false })
     .order('created_at', { ascending: false });
 
   if (status) query = query.eq('status', status);

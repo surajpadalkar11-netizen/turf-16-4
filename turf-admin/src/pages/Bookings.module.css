@@ -1,0 +1,221 @@
+/* Bookings Page */
+
+.pageHeader {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.pageTitle {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--text);
+  margin: 0;
+}
+
+.pageSubtitle {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+.filterRow {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.searchWrap {
+  position: relative;
+  width: 200px;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.searchInput {
+  padding-left: 32px !important;
+}
+
+/* Loading */
+.loadingWrap {
+  display: flex;
+  justify-content: center;
+  padding: 80px 20px;
+}
+
+/* Empty state */
+.emptyCard {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-secondary);
+}
+
+/* Desktop Table */
+.tableCard {
+  padding: 0;
+  overflow: hidden;
+}
+
+.customerName { font-weight: 700; font-size: 15px; margin-bottom: 3px; }
+.customerPhone { font-size: 13px; color: var(--text-secondary); }
+
+.bookingDate { font-weight: 700; font-size: 14px; margin-bottom: 3px; }
+.bookingSlots { font-size: 13px; color: var(--primary); font-weight: 700; }
+
+.payTotal { font-size: 13px; color: var(--text-muted); margin-bottom: 4px; }
+.payPending {
+  font-size: 13px; font-weight: 700; color: #ef4444;
+  background: rgba(239,68,68,0.1); display: inline-block;
+  padding: 3px 10px; border-radius: 6px;
+}
+.payDone { font-size: 13px; font-weight: 700; color: #10b981; }
+
+.actionGroup {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 20px;
+}
+
+.pageInfo {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+/* Mobile cards - hidden on desktop */
+.mobileCards { display: none; }
+
+.mobileCard {
+  margin-bottom: 12px;
+  padding: 16px;
+}
+
+.mobileCardTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.mobileCardMeta {
+  display: flex;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.mobileCardPayment {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: var(--bg);
+  border-radius: 8px;
+}
+
+.mobileCardActions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Modal */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.modal {
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 28px;
+  width: 100%;
+  max-width: 400px;
+}
+
+.modalTitle {
+  font-size: 20px;
+  font-weight: 800;
+  color: #f59e0b;
+  margin-bottom: 16px;
+}
+
+.modalInfo {
+  background: var(--bg);
+  padding: 14px;
+  border-radius: 10px;
+  margin-bottom: 18px;
+  font-size: 13px;
+}
+
+.pendingAmt {
+  font-size: 14px;
+  font-weight: 800;
+  color: #ef4444;
+  margin-top: 6px;
+}
+
+.modalField {
+  margin-bottom: 20px;
+}
+
+.modalField label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--text-secondary);
+}
+
+.modalActions {
+  display: flex;
+  gap: 10px;
+}
+
+.modalActions button { flex: 1; }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .pageHeader { flex-direction: column; align-items: stretch; }
+  .filterRow { flex-direction: column; align-items: stretch; }
+  .searchWrap { width: 100%; }
+
+  /* Hide desktop table, show mobile cards */
+  .tableCard { display: none; }
+  .mobileCards { display: block; }
+}
+
+@media (max-width: 480px) {
+  .pageTitle { font-size: 22px; }
+}

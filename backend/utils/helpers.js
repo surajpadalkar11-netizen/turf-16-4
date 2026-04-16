@@ -7,29 +7,30 @@ const formatPrice = (amount) => {
 };
 
 // Generate time slots between open and close hours
+// intervalMinutes: any positive integer (30, 45, 60, 90, 120, etc.)
 const generateTimeSlots = (openTime, closeTime, intervalMinutes = 60) => {
+  // Clamp to sensible bounds
+  intervalMinutes = Math.max(15, Math.min(480, intervalMinutes));
   const slots = [];
   const [openH, openM] = openTime.split(':').map(Number);
   const [closeH, closeM] = closeTime.split(':').map(Number);
-  let currentH = openH;
-  let currentM = openM;
+  const closeTotalMin = closeH * 60 + closeM;
+  let currentTotalMin = openH * 60 + openM;
 
-  while (currentH < closeH || (currentH === closeH && currentM < closeM)) {
-    const startH = String(currentH).padStart(2, '0');
-    const startM = String(currentM).padStart(2, '0');
-    let endMinutes = currentM + intervalMinutes;
-    let endH = currentH + Math.floor(endMinutes / 60);
-    let endM = endMinutes % 60;
+  while (currentTotalMin + intervalMinutes <= closeTotalMin) {
+    const startH = String(Math.floor(currentTotalMin / 60)).padStart(2, '0');
+    const startM = String(currentTotalMin % 60).padStart(2, '0');
+    const endTotalMin = currentTotalMin + intervalMinutes;
+    const endH = String(Math.floor(endTotalMin / 60)).padStart(2, '0');
+    const endM = String(endTotalMin % 60).padStart(2, '0');
 
-    if (endH > closeH || (endH === closeH && endM > closeM)) break;
+    slots.push({
+      start: `${startH}:${startM}`,
+      end: `${endH}:${endM}`,
+      durationMinutes: intervalMinutes,
+    });
 
-    const endHStr = String(endH).padStart(2, '0');
-    const endMStr = String(endM).padStart(2, '0');
-
-    slots.push({ start: `${startH}:${startM}`, end: `${endHStr}:${endMStr}` });
-
-    currentH = endH;
-    currentM = endM;
+    currentTotalMin = endTotalMin;
   }
 
   return slots;

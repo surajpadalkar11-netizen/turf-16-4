@@ -6,6 +6,10 @@ const {
   getTurfStats,
   getTurfSlots,
   verifyBookingCode,
+  toggleTurfStatus,
+  toggleSlotBlock,
+  updateTurfPricing,
+  updateTurfDetails,
 } = require('../controllers/turfOwnerController');
 const {
   getTurfBookings,
@@ -21,6 +25,10 @@ router.post('/login', turfOwnerLogin);
 router.get('/turfs', protect, getOwnerTurfs);
 router.get('/stats/:turfId', protect, getTurfStats);
 router.get('/slots/:turfId', protect, getTurfSlots);
+router.post('/slots/:turfId/toggle-block', protect, toggleSlotBlock);
+router.put('/turf/:turfId/toggle-status', protect, toggleTurfStatus);
+router.put('/turf/:turfId/pricing', protect, updateTurfPricing);
+router.put('/turf/:turfId', protect, updateTurfDetails);
 router.post('/verify-booking', protect, verifyBookingCode);
 
 // Bookings under turf

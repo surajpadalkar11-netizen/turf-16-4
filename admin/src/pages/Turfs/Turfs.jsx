@@ -10,10 +10,10 @@ const emptyForm = {
   name: '', description: '', sportTypes: [], surfaceType: 'artificial-turf',
   address: { street: '', city: '', state: '', pincode: '' },
   location: { type: 'Point', coordinates: [0, 0] },
-  images: [''], pricePerHour: '', amenities: [],
+  images: [''], pricePerHour: '', peakHourStart: '18:00', peakHourEnd: '23:00', peakPricePerHour: '', amenities: [],
   dimensions: { length: '', width: '' },
   operatingHours: { open: '06:00', close: '23:00' },
-  ownerPhone: '', ownerEmail: '',
+  ownerPhone: '', ownerEmail: '', ownerPassword: '',
   razorpayKeyId: '', razorpayKeySecret: '',
 };
 
@@ -50,7 +50,7 @@ function Turfs() {
 
   const openCreate = () => {
     setEditId(null);
-    setForm({ ...emptyForm, address: { ...emptyForm.address }, location: { ...emptyForm.location }, dimensions: { ...emptyForm.dimensions }, operatingHours: { ...emptyForm.operatingHours }, images: [''], sportTypes: [], amenities: [] });
+    setForm({ ...emptyForm, address: { ...emptyForm.address }, location: { ...emptyForm.location }, dimensions: { ...emptyForm.dimensions }, operatingHours: { ...emptyForm.operatingHours }, images: [''], sportTypes: [], amenities: [], peakHourStart: '18:00', peakHourEnd: '23:00', peakPricePerHour: '' });
     setShowModal(true);
   };
 
@@ -65,11 +65,15 @@ function Turfs() {
       location: { ...turf.location },
       images: turf.images?.length ? [...turf.images] : [''],
       pricePerHour: turf.pricePerHour,
+      peakHourStart: turf.peakHourStart || '18:00',
+      peakHourEnd: turf.peakHourEnd || '23:00',
+      peakPricePerHour: turf.peakPricePerHour || '',
       amenities: [...(turf.amenities || [])],
       dimensions: { length: turf.dimensions?.length || '', width: turf.dimensions?.width || '' },
       operatingHours: { open: turf.operatingHours?.open || '06:00', close: turf.operatingHours?.close || '23:00' },
       ownerPhone: turf.ownerPhone || '',
       ownerEmail: turf.ownerEmail || '',
+      ownerPassword: turf.ownerPassword || '',
       razorpayKeyId: turf.razorpayKeyId || '',
       razorpayKeySecret: turf.razorpayKeySecret || '',
     });
@@ -110,6 +114,7 @@ function Turfs() {
         ...form,
         location: finalLocation,
         pricePerHour: Number(form.pricePerHour),
+        peakPricePerHour: form.peakPricePerHour ? Number(form.peakPricePerHour) : null,
         images: form.images.filter((i) => i.trim()),
         dimensions: {
           length: form.dimensions.length ? Number(form.dimensions.length) : undefined,
@@ -294,6 +299,23 @@ function Turfs() {
 
                 <div className="form-row">
                   <div className="form-group">
+                    <label>Peak Hour Start (e.g., 6 PM)</label>
+                    <input type="time" className="input" value={form.peakHourStart} onChange={(e) => setForm({ ...form, peakHourStart: e.target.value })} />
+                  </div>
+                  <div className="form-group">
+                    <label>Peak Hour End</label>
+                    <input type="time" className="input" value={form.peakHourEnd} onChange={(e) => setForm({ ...form, peakHourEnd: e.target.value })} />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Peak Price Per Hour (₹) - Leave empty to use regular price</label>
+                  <input type="number" className="input" value={form.peakPricePerHour} onChange={(e) => setForm({ ...form, peakPricePerHour: e.target.value })} min={0} placeholder="2000" />
+                  <small style={{ color: '#888', fontSize: '0.85rem' }}>Higher rate for peak hours (after 6 PM) due to electricity costs</small>
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
                     <label>Street *</label>
                     <input className="input" value={form.address.street} onChange={(e) => setForm({ ...form, address: { ...form.address, street: e.target.value } })} required />
                   </div>
@@ -343,6 +365,14 @@ function Turfs() {
                   <div className="form-group">
                     <label>Turf Owner Phone (for updates)</label>
                     <input type="tel" className="input" value={form.ownerPhone} onChange={(e) => setForm({ ...form, ownerPhone: e.target.value })} placeholder="9876543210" />
+                  </div>
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Turf Owner Password</label>
+                    <input type="text" className="input" value={form.ownerPassword} onChange={(e) => setForm({ ...form, ownerPassword: e.target.value })} placeholder="Set password for owner login" />
+                    {editId && <small style={{ color: '#aaa' }}>Leave empty to keep current password</small>}
                   </div>
                 </div>
 

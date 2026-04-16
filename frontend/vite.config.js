@@ -12,4 +12,22 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    // Code splitting for faster initial load
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          ui: ['axios'],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 1000,
+    // Minify CSS
+    cssMinify: true,
+  },
+  // Optimize dependency pre-bundling
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react-router-dom', 'axios'],
+  },
 });

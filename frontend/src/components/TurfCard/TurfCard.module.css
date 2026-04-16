@@ -96,6 +96,22 @@
   z-index: 2;
 }
 
+.peakBadge {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  padding: 0.2rem 0.65rem;
+  background: rgba(251, 191, 36, 0.92);
+  backdrop-filter: blur(8px);
+  color: #78350f;
+  font-size: 0.65rem;
+  font-weight: 700;
+  border-radius: var(--radius-full);
+  letter-spacing: 0.03em;
+  z-index: 2;
+  border: 1px solid rgba(245,158,11,0.3);
+}
+
 /* Favorite button */
 .favBtn {
   position: absolute;
@@ -138,6 +154,7 @@
   line-height: 1.3;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -188,10 +205,20 @@
   color: var(--color-text-muted);
 }
 
+.star { color: #f59e0b; font-size: 12px; }
+
+.priceBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+
 .price {
   font-size: 1rem;
   font-weight: 800;
   color: var(--color-primary);
+  margin: 0;
 }
 
 .price span {
@@ -199,6 +226,13 @@
   font-weight: 500;
   color: var(--color-text-muted);
   margin-left: 1px;
+}
+
+.peakPrice {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #d97706;
+  margin: 0;
 }
 
 /* Amenities */
@@ -220,7 +254,23 @@
   text-transform: capitalize;
 }
 
-/* Book now */
+/* Book Now CTA (always visible at bottom of card) */
+.cta {
+  margin-top: auto;
+  padding-top: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-primary);
+  text-align: right;
+  letter-spacing: 0.3px;
+  transition: gap 0.2s;
+}
+
+.card:hover .cta {
+  text-decoration: underline;
+}
+
+/* Legacy bookBtn kept for backward compat */
 .bookBtn {
   display: block;
   width: 100%;

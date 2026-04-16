@@ -33,6 +33,15 @@
   margin: 0 auto var(--space-md);
 }
 
+.avatarImg {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-full);
+  object-fit: cover;
+  margin: 0 auto var(--space-md);
+  border: 2px solid var(--color-border);
+}
+
 .email {
   color: var(--color-text-muted);
   font-size: var(--font-sm);

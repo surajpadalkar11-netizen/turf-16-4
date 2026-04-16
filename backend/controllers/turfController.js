@@ -1,4 +1,5 @@
 const supabase = require('../config/supabase');
+const bcrypt = require('bcryptjs');
 const { asyncHandler, generateTimeSlots } = require('../utils/helpers');
 
 // Helper to map DB row to API shape
@@ -13,6 +14,9 @@ const mapTurf = (t) => ({
   address: { street: t.street, city: t.city, state: t.state, pincode: t.pincode },
   images: t.images || [],
   pricePerHour: t.price_per_hour,
+  peakHourStart: t.peak_hour_start,
+  peakHourEnd: t.peak_hour_end,
+  peakPricePerHour: t.peak_price_per_hour,
   amenities: t.amenities || [],
   dimensions: { length: t.dim_length, width: t.dim_width },
   operatingHours: { open: t.operating_open, close: t.operating_close },
@@ -98,31 +102,62 @@ exports.getTurf = asyncHandler(async (req, res) => {
 });
 
 // @desc    Get available slots for a turf on a date
-// @route   GET /api/turfs/:id/slots?date=YYYY-MM-DD
+// @route   GET /api/turfs/:id/slots?date=YYYY-MM-DD&interval=60
 exports.getAvailableSlots = asyncHandler(async (req, res) => {
   const { data: turf, error } = await supabase.from('turfs').select('id, operating_open, operating_close').eq('id', req.params.id).single();
   if (error || !turf) {
     return res.status(404).json({ success: false, message: 'Turf not found' });
   }
 
-  const { date } = req.query;
+  const { date, interval } = req.query;
   if (!date) return res.status(400).json({ success: false, message: 'Date is required' });
 
-  const allSlots = generateTimeSlots(turf.operating_open, turf.operating_close);
+  // Support any positive interval (30, 60, 90, 120 minutes, etc.)
+  const intervalMinutes = Math.max(15, parseInt(interval, 10) || 60);
+  const allSlots = generateTimeSlots(turf.operating_open, turf.operating_close, intervalMinutes);
 
   const { data: bookings } = await supabase
     .from('bookings')
-    .select('time_slots')
+    .select('time_slots, notes')
     .eq('turf_id', turf.id)
     .eq('date', date)
-    .in('status', ['confirmed', 'pending']);
+    .in('status', ['confirmed', 'pending', 'completed']);
 
-  const bookedSlots = new Set();
+  const bookedRanges = [];
   (bookings || []).forEach((b) => {
-    (b.time_slots || []).forEach((s) => bookedSlots.add(s.start));
+    // Treat admin blocked slots identical to regular user bookings on client side
+    const isAdminBlocked = false; 
+    (b.time_slots || []).forEach((s) => {
+      const [h1, m1] = s.start.split(':').map(Number);
+      const [h2, m2] = s.end.split(':').map(Number);
+      bookedRanges.push({ startMins: h1 * 60 + m1, endMins: h2 * 60 + m2, blocked: isAdminBlocked });
+    });
   });
 
-  const slots = allSlots.map((slot) => ({ ...slot, available: !bookedSlots.has(slot.start) }));
+  const slots = allSlots.map((slot) => {
+    const [h1, m1] = slot.start.split(':').map(Number);
+    const [h2, m2] = slot.end.split(':').map(Number);
+    const slotStart = h1 * 60 + m1;
+    const slotEnd = h2 * 60 + m2;
+
+    let available = true;
+    let blocked = false;
+
+    for (const r of bookedRanges) {
+      const overlaps =
+        (slotStart >= r.startMins && slotStart < r.endMins) ||
+        (slotEnd > r.startMins && slotEnd <= r.endMins) ||
+        (slotStart <= r.startMins && slotEnd >= r.endMins);
+      if (overlaps) {
+        available = false;
+        if (r.blocked) blocked = true;
+        break;
+      }
+    }
+
+    return { ...slot, available, blocked };
+  });
+
   res.json({ success: true, slots, date });
 });
 
@@ -131,9 +166,30 @@ exports.getAvailableSlots = asyncHandler(async (req, res) => {
 exports.createTurf = asyncHandler(async (req, res) => {
   const {
     name, description, sportTypes, surfaceType, address, images,
-    pricePerHour, amenities, dimensions, operatingHours, ownerPhone,
-    ownerEmail, razorpayKeyId, razorpayKeySecret, location,
+    pricePerHour, peakHourStart, peakHourEnd, peakPricePerHour, amenities, dimensions, operatingHours, ownerPhone,
+    ownerEmail, ownerPassword, razorpayKeyId, razorpayKeySecret, location,
   } = req.body;
+
+  let ownerId = req.user.id;
+  if (ownerEmail && ownerPassword) {
+    const { data: existingUser } = await supabase.from('users').select('id').eq('email', ownerEmail.toLowerCase()).single();
+    const salt = await bcrypt.genSalt(12);
+    const hashedPassword = await bcrypt.hash(ownerPassword, salt);
+    
+    if (!existingUser) {
+      const { data: newUser } = await supabase.from('users').insert({
+        name: name ? name + ' Owner' : 'Turf Owner',
+        email: ownerEmail.toLowerCase(),
+        password: hashedPassword,
+        phone: ownerPhone || '',
+        role: 'turf_owner'
+      }).select('id').single();
+      if (newUser) ownerId = newUser.id;
+    } else {
+      await supabase.from('users').update({ password: hashedPassword, role: 'turf_owner' }).eq('email', ownerEmail.toLowerCase());
+      ownerId = existingUser.id;
+    }
+  }
 
   const insert = {
     name, description,
@@ -145,6 +201,9 @@ exports.createTurf = asyncHandler(async (req, res) => {
     pincode: address?.pincode || '',
     images: images || [],
     price_per_hour: pricePerHour,
+    peak_hour_start: peakHourStart || '18:00',
+    peak_hour_end: peakHourEnd || '23:00',
+    peak_price_per_hour: peakPricePerHour || null,
     amenities: amenities || [],
     dim_length: dimensions?.length || null,
     dim_width: dimensions?.width || null,
@@ -152,7 +211,7 @@ exports.createTurf = asyncHandler(async (req, res) => {
     operating_close: operatingHours?.close || '23:00',
     lat: location?.coordinates?.[1] || 0,
     lng: location?.coordinates?.[0] || 0,
-    owner_id: req.user.id,
+    owner_id: ownerId,
     owner_phone: ownerPhone || '',
     owner_email: ownerEmail || '',
     razorpay_key_id: razorpayKeyId || '',
@@ -176,8 +235,8 @@ exports.updateTurf = asyncHandler(async (req, res) => {
 
   const {
     name, description, sportTypes, surfaceType, address, images,
-    pricePerHour, amenities, dimensions, operatingHours, ownerPhone,
-    ownerEmail, razorpayKeyId, razorpayKeySecret, isActive, location,
+    pricePerHour, peakHourStart, peakHourEnd, peakPricePerHour, amenities, dimensions, operatingHours, ownerPhone,
+    ownerEmail, ownerPassword, razorpayKeyId, razorpayKeySecret, isActive, location,
   } = req.body;
 
   const updates = { updated_at: new Date().toISOString() };
@@ -191,6 +250,9 @@ exports.updateTurf = asyncHandler(async (req, res) => {
   if (address?.pincode !== undefined) updates.pincode = address.pincode;
   if (images !== undefined) updates.images = images;
   if (pricePerHour !== undefined) updates.price_per_hour = pricePerHour;
+  if (peakHourStart !== undefined) updates.peak_hour_start = peakHourStart;
+  if (peakHourEnd !== undefined) updates.peak_hour_end = peakHourEnd;
+  if (peakPricePerHour !== undefined) updates.peak_price_per_hour = peakPricePerHour;
   if (amenities !== undefined) updates.amenities = amenities;
   if (dimensions?.length !== undefined) updates.dim_length = dimensions.length;
   if (dimensions?.width !== undefined) updates.dim_width = dimensions.width;
@@ -204,6 +266,26 @@ exports.updateTurf = asyncHandler(async (req, res) => {
   if (location?.coordinates) {
     updates.lat = location.coordinates[1];
     updates.lng = location.coordinates[0];
+  }
+
+  if (ownerEmail && ownerPassword) {
+    const { data: existingUser } = await supabase.from('users').select('id').eq('email', ownerEmail.toLowerCase()).single();
+    const salt = await bcrypt.genSalt(12);
+    const hashedPassword = await bcrypt.hash(ownerPassword, salt);
+    
+    if (!existingUser) {
+      const { data: newUser } = await supabase.from('users').insert({
+        name: name ? name + ' Owner' : 'Turf Owner',
+        email: ownerEmail.toLowerCase(),
+        password: hashedPassword,
+        phone: ownerPhone || '',
+        role: 'turf_owner'
+      }).select('id').single();
+      if (newUser) updates.owner_id = newUser.id;
+    } else {
+      await supabase.from('users').update({ password: hashedPassword, role: 'turf_owner' }).eq('email', ownerEmail.toLowerCase());
+      updates.owner_id = existingUser.id;
+    }
   }
 
   const { data, error } = await supabase.from('turfs').update(updates).eq('id', req.params.id).select().single();

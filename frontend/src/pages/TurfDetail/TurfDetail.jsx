@@ -10,17 +10,30 @@ import { formatPrice, getSportIcon } from '../../utils/formatters';
 import { AMENITIES } from '../../utils/constants';
 import styles from './TurfDetail.module.css';
 
+// Preset slot durations offered to the user
+const SLOT_PRESETS = [
+  { label: '30 Min', minutes: 30 },
+  { label: '1 Hour', minutes: 60 },
+  { label: '1.5 Hrs', minutes: 90 },
+  { label: '2 Hours', minutes: 120 },
+  { label: 'Custom', minutes: null },
+];
+
 function TurfDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { bookingData, setTurf, setDate, toggleSlot } = useBooking();
+  const { bookingData, setTurf, setDate, toggleSlot, clearBooking } = useBooking();
   const [turf, setTurfData] = useState(null);
   const [slots, setSlots] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState('');
-  
+  const [slotInterval, setSlotInterval] = useState(60);
+  const [customMinutes, setCustomMinutes] = useState('');
+  const [showCustomInput, setShowCustomInput] = useState(false);
+  const [slotsRefreshing, setSlotsRefreshing] = useState(false);
+
   // Review form state
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
@@ -34,7 +47,23 @@ function TurfDetail() {
 
   useEffect(() => {
     if (selectedDate && id) loadSlots();
-  }, [selectedDate]);
+  }, [selectedDate, slotInterval]);
+
+  // Auto-refresh slots every 30 seconds to pick up admin block/unblock changes
+  useEffect(() => {
+    if (!selectedDate || !id) return;
+    const timer = setInterval(loadSlots, 30000);
+    return () => clearInterval(timer);
+  }, [selectedDate, slotInterval, id]);
+
+  // Refresh when the browser tab becomes visible again
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && selectedDate) loadSlots();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [selectedDate, slotInterval]);
 
   const loadTurf = async () => {
     try {
@@ -49,12 +78,15 @@ function TurfDetail() {
     }
   };
 
-  const loadSlots = async () => {
+  const loadSlots = async (showSpinner = false) => {
+    if (showSpinner) setSlotsRefreshing(true);
     try {
-      const { data } = await getAvailableSlots(id, selectedDate);
+      const { data } = await getAvailableSlots(id, selectedDate, slotInterval);
       setSlots(data.slots || []);
     } catch (err) {
       console.error('Failed to load slots:', err);
+    } finally {
+      if (showSpinner) setSlotsRefreshing(false);
     }
   };
 
@@ -71,7 +103,7 @@ function TurfDetail() {
       await createReview({ turfId: id, rating, comment });
       setComment('');
       setRating(0);
-      loadTurf(); // Reload turf to get new reviews and updated rating
+      loadTurf();
     } catch (err) {
       setReviewError(err.response?.data?.message || 'Failed to submit review. Have you booked this turf?');
     } finally {
@@ -83,6 +115,33 @@ function TurfDetail() {
     const date = e.target.value;
     setSelectedDate(date);
     setDate(date);
+  };
+
+  const handleIntervalChange = (newInterval) => {
+    if (newInterval === null) {
+      // Custom preset selected
+      setShowCustomInput(true);
+      return;
+    }
+    setShowCustomInput(false);
+    if (newInterval === slotInterval) return;
+    setSlotInterval(newInterval);
+    clearBooking();
+    setDate(selectedDate);
+    setTurf(turf);
+  };
+
+  const applyCustomDuration = () => {
+    const mins = parseInt(customMinutes, 10);
+    if (!mins || mins < 15 || mins > 480) {
+      alert('Please enter a duration between 15 and 480 minutes.');
+      return;
+    }
+    setShowCustomInput(false);
+    setSlotInterval(mins);
+    clearBooking();
+    setDate(selectedDate);
+    setTurf(turf);
   };
 
   const handleProceedToBook = () => {
@@ -116,6 +175,8 @@ function TurfDetail() {
 
   const getAmenityLabel = (val) => AMENITIES.find((a) => a.value === val) || { icon: '✓', label: val };
   const today = new Date().toISOString().split('T')[0];
+  const slotPriceForDuration = (minutes, pricePerHour) => Math.round((minutes / 60) * pricePerHour);
+  const activePreset = SLOT_PRESETS.find(p => p.minutes === slotInterval);
 
   return (
     <div className={`container ${styles.page}`}>
@@ -134,7 +195,7 @@ function TurfDetail() {
           <div className={styles.header}>
             <div>
               <h1 className={styles.title}>{turf.name}</h1>
-              <p className={styles.location}>📍 {turf.address?.street}, {turf.address?.city}, {turf.address?.state} - {turf.address?.pincode}</p>
+              <p className={styles.location}>{turf.address?.street}, {turf.address?.city}, {turf.address?.state} - {turf.address?.pincode}</p>
             </div>
             <div className={styles.ratingBox}>
               <span className={styles.ratingNum}>{turf.rating?.average?.toFixed(1)}</span>
@@ -144,18 +205,48 @@ function TurfDetail() {
 
           <div className={styles.tags}>
             {turf.sportTypes?.map((s) => (
-              <span key={s} className={styles.tag}>{getSportIcon(s)} {s}</span>
+              <span key={s} className={styles.tag}>{s}</span>
             ))}
-            <span className={styles.tag}>🌿 {turf.surfaceType?.replace(/-/g, ' ')}</span>
+            <span className={styles.tag}>{turf.surfaceType?.replace(/-/g, ' ')}</span>
           </div>
 
           <p className={styles.description}>{turf.description}</p>
 
-          <div className={styles.infoGrid}>
-            <div className={styles.infoItem}>
-              <span className={styles.infoLabel}>Price</span>
-              <span className={styles.infoValue}>{formatPrice(turf.pricePerHour)}/hr</span>
+          {/* Pricing Info Grid */}
+          <div className={styles.pricingSection}>
+            <h3 className={styles.sectionTitle}>💰 Pricing</h3>
+            <div className={styles.pricingGrid}>
+              <div className={styles.pricingCard}>
+                <span className={styles.pricingLabel}>Base Rate</span>
+                <span className={styles.pricingValue}>{formatPrice(turf.pricePerHour)}<span className={styles.pricingUnit}>/hr</span></span>
+              </div>
+              <div className={styles.pricingCard}>
+                <span className={styles.pricingLabel}>30 Min</span>
+                <span className={styles.pricingValue}>{formatPrice(turf.pricePerHour / 2)}<span className={styles.pricingUnit}>/slot</span></span>
+              </div>
+              {turf.peakPricePerHour && (
+                <>
+                  <div className={`${styles.pricingCard} ${styles.peakCard}`}>
+                    <span className={styles.pricingLabel}>🌙 Night Rate</span>
+                    <span className={`${styles.pricingValue} ${styles.peakValue}`}>{formatPrice(turf.peakPricePerHour)}<span className={styles.pricingUnit}>/hr</span></span>
+                    <span className={styles.peakHours}>{turf.peakHourStart} – {turf.peakHourEnd}</span>
+                  </div>
+                  <div className={`${styles.pricingCard} ${styles.peakCard}`}>
+                    <span className={styles.pricingLabel}>🌙 Night 30 Min</span>
+                    <span className={`${styles.pricingValue} ${styles.peakValue}`}>{formatPrice(turf.peakPricePerHour / 2)}<span className={styles.pricingUnit}>/slot</span></span>
+                  </div>
+                </>
+              )}
             </div>
+            {turf.peakPricePerHour && (
+              <div className={styles.peakNotice}>
+                👉 “Night charges include lighting cost 💡”<br/>
+                Night pricing applies from <strong>{turf.peakHourStart}</strong> to <strong>{turf.peakHourEnd}</strong>.
+              </div>
+            )}
+          </div>
+
+          <div className={styles.infoGrid}>
             <div className={styles.infoItem}>
               <span className={styles.infoLabel}>Hours</span>
               <span className={styles.infoValue}>{turf.operatingHours?.open} – {turf.operatingHours?.close}</span>
@@ -175,7 +266,7 @@ function TurfDetail() {
               {turf.amenities?.map((a) => {
                 const info = getAmenityLabel(a);
                 return (
-                  <span key={a} className={styles.amenityItem}>{info.icon} {info.label}</span>
+                  <span key={a} className={styles.amenityItem}>{info.label}</span>
                 );
               })}
             </div>
@@ -245,7 +336,16 @@ function TurfDetail() {
         <aside className={styles.bookingSidebar}>
           <div className={styles.bookingCard}>
             <h3 className={styles.bookingTitle}>Book This Turf</h3>
-            <p className={styles.bookingPrice}>{formatPrice(turf.pricePerHour)} <span>/hour</span></p>
+
+            {/* Dynamic price display */}
+            <div className={styles.bookingPriceRow}>
+              <div>
+                <p className={styles.bookingPrice}>{formatPrice(turf.pricePerHour)} <span>/hour</span></p>
+                {turf.peakPricePerHour && (
+                  <p className={styles.bookingPeakBadge}>🌙 Night: {formatPrice(turf.peakPricePerHour)}/hr after {turf.peakHourStart}</p>
+                )}
+              </div>
+            </div>
 
             <div className={styles.dateField}>
               <label>Select Date</label>
@@ -254,13 +354,85 @@ function TurfDetail() {
 
             {selectedDate && (
               <>
+                {/* Slot Duration Picker */}
+                <div className={styles.intervalSection}>
+                  <label className={styles.intervalLabel}>Slot Duration</label>
+                  <div className={styles.intervalGrid}>
+                    {SLOT_PRESETS.map((preset) => {
+                      const isActive = preset.minutes === null
+                        ? showCustomInput || (!SLOT_PRESETS.find(p => p.minutes === slotInterval) && slotInterval > 0)
+                        : preset.minutes === slotInterval && !showCustomInput;
+                      const slotCost = preset.minutes
+                        ? slotPriceForDuration(preset.minutes, turf.pricePerHour)
+                        : null;
+                      return (
+                        <button
+                          key={preset.label}
+                          id={`interval-${preset.minutes || 'custom'}`}
+                          className={`${styles.intervalBtn} ${isActive ? styles.intervalActive : ''}`}
+                          onClick={() => handleIntervalChange(preset.minutes)}
+                        >
+                          <span>{preset.label}</span>
+                          {slotCost !== null && (
+                            <span className={styles.intervalPrice}>₹{slotCost}</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {showCustomInput && (
+                    <div className={styles.customDurationRow}>
+                      <input
+                        type="number"
+                        min={15}
+                        max={480}
+                        step={15}
+                        value={customMinutes}
+                        onChange={e => setCustomMinutes(e.target.value)}
+                        placeholder="Minutes (e.g. 45)"
+                        className={styles.customInput}
+                        id="custom-duration-input"
+                      />
+                      <button className={styles.applyBtn} onClick={applyCustomDuration}>Apply</button>
+                    </div>
+                  )}
+
+                  {!showCustomInput && activePreset === undefined && slotInterval > 0 && (
+                    <p className={styles.intervalNote}>
+                      Custom: {slotInterval} min slots · ₹{slotPriceForDuration(slotInterval, turf.pricePerHour)} each
+                    </p>
+                  )}
+                </div>
+
                 <div className={styles.slotsSection}>
-                  <label>Select Time Slots</label>
+                  <div className={styles.slotsSectionHeader}>
+                    <label>Select Time Slots</label>
+                    <div className={styles.slotHeaderActions}>
+                      <span className={styles.liveDot} title="Slots auto-refresh every 30s">
+                        <span className={styles.livePulse} />
+                        Live
+                      </span>
+                      <button
+                        className={styles.refreshBtn}
+                        onClick={() => loadSlots(true)}
+                        disabled={slotsRefreshing}
+                        title="Refresh slots"
+                        id="refresh-slots-btn"
+                      >
+                        <span className={slotsRefreshing ? styles.spinning : ''}>↻</span>
+                      </button>
+                    </div>
+                  </div>
                   <SlotPicker
                     slots={slots}
                     selectedSlots={bookingData.selectedSlots}
                     onToggle={toggleSlot}
                     pricePerHour={turf.pricePerHour}
+                    peakPricePerHour={turf.peakPricePerHour}
+                    peakHourStart={turf.peakHourStart}
+                    peakHourEnd={turf.peakHourEnd}
+                    slotDurationMinutes={slotInterval}
                   />
                 </div>
 
@@ -269,6 +441,12 @@ function TurfDetail() {
                     <div className={styles.summaryRow}>
                       <span>Slots selected</span>
                       <span>{bookingData.selectedSlots.length}</span>
+                    </div>
+                    <div className={styles.summaryRow}>
+                      <span>Total duration</span>
+                      <span>
+                        {bookingData.selectedSlots.reduce((s, sl) => s + (sl.durationMinutes || 60), 0)} min
+                      </span>
                     </div>
                     <div className={styles.summaryRow}>
                       <span>Total</span>

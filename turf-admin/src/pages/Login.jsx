@@ -49,10 +49,9 @@ export default function Login() {
             background: 'var(--bg-glass)', border: '1px solid var(--border)',
             borderRadius: 12, padding: '10px 20px',
           }}>
-            <span style={{ fontSize: 24 }}>🏟️</span>
             <span style={{ fontWeight: 800, fontSize: 20, color: 'var(--primary)' }}>turf11</span>
             <span style={{
-              fontSize: 10, fontWeight: 700, background: 'var(--primary)', color: '#000',
+              fontSize: 10, fontWeight: 700, background: 'var(--primary)', color: '#ffffff',
               padding: '2px 8px', borderRadius: 4, letterSpacing: '0.5px',
             }}>OWNER</span>
           </div>
@@ -79,7 +78,7 @@ export default function Login() {
               color: '#ef4444', borderRadius: 10, padding: '12px 16px', marginBottom: 20,
               fontSize: 13,
             }}>
-              ⚠️ {error}
+              {error}
             </div>
           )}
 

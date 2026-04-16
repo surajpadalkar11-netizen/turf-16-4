@@ -1,10 +1,11 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard, CalendarDays, Grid3X3, ScanLine,
-  LogOut, ChevronDown, Menu, X, Building2
+  LogOut, ChevronDown, Menu, X, Building2,
 } from 'lucide-react';
+import styles from './Layout.module.css';
 
 const NAV = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -19,67 +20,73 @@ export default function Layout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [turfDropdown, setTurfDropdown] = useState(false);
 
+  // Close mobile menu on resize to desktop
+  useEffect(() => {
+    const onResize = () => { if (window.innerWidth >= 900) setMobileOpen(false); };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  // Prevent body scroll when mobile menu open
+  useEffect(() => {
+    document.body.style.overflow = mobileOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [mobileOpen]);
+
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
-  const sidebarContent = (
-    <div style={{
-      width: 240, height: '100%', display: 'flex', flexDirection: 'column',
-      borderRight: '1px solid var(--border)', background: 'rgba(10,14,26,0.95)',
-      backdropFilter: 'blur(20px)',
-    }}>
+  const SidebarContent = () => (
+    <div className={styles.sidebar}>
       {/* Logo */}
-      <div style={{ padding: '20px 20px 16px', borderBottom: '1px solid var(--border)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 22 }}>🏟️</span>
+      <div className={styles.sidebarHeader}>
+        <div className={styles.logo}>
+          <div className={styles.logoIcon}>
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+              <rect width="28" height="28" rx="8" fill="url(#adminGrad)" />
+              <text x="14" y="20" textAnchor="middle" fontSize="14" fill="white" fontWeight="800" fontFamily="system-ui">11</text>
+              <defs>
+                <linearGradient id="adminGrad" x1="0" y1="0" x2="28" y2="28">
+                  <stop offset="0%" stopColor="#00d4aa" />
+                  <stop offset="100%" stopColor="#00a884" />
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
           <div>
-            <div style={{ fontWeight: 800, fontSize: 16, color: 'var(--primary)', lineHeight: 1.1 }}>turf11</div>
-            <div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '1px' }}>OWNER PANEL</div>
+            <div className={styles.logoName}>turf11</div>
+            <div className={styles.logoTag}>OWNER PANEL</div>
           </div>
         </div>
       </div>
 
       {/* Turf Selector */}
       {turfs.length > 0 && (
-        <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
-          <div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '1px' }}>
-            Active Turf
-          </div>
+        <div className={styles.turfSelector}>
+          <div className={styles.turfSelectorLabel}>Active Turf</div>
           <div
-            style={{
-              background: 'var(--bg-glass)', border: '1px solid var(--border)', borderRadius: 10,
-              padding: '10px 12px', cursor: turfs.length > 1 ? 'pointer' : 'default',
-              position: 'relative',
-            }}
+            className={styles.turfDropdownTrigger}
+            style={{ cursor: turfs.length > 1 ? 'pointer' : 'default' }}
             onClick={() => turfs.length > 1 && setTurfDropdown(p => !p)}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Building2 size={14} color="var(--primary)" />
-                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
-                  {selectedTurf?.name || 'Select Turf'}
-                </span>
-              </div>
-              {turfs.length > 1 && <ChevronDown size={14} color="var(--text-muted)" />}
+            <div className={styles.turfDropdownRow}>
+              <Building2 size={14} color="var(--primary)" />
+              <span className={styles.turfName}>{selectedTurf?.name || 'Select Turf'}</span>
             </div>
+            {turfs.length > 1 && (
+              <ChevronDown size={14} color="var(--text-muted)"
+                style={{ transform: turfDropdown ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+            )}
             {turfDropdown && turfs.length > 1 && (
-              <div style={{
-                position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
-                background: 'var(--bg-alt)', border: '1px solid var(--border)', borderRadius: 10,
-                marginTop: 4, overflow: 'hidden', boxShadow: 'var(--shadow)',
-              }}>
+              <div className={styles.turfMenu}>
                 {turfs.map(t => (
                   <div
                     key={t.id}
-                    onClick={(e) => { e.stopPropagation(); switchTurf(t); setTurfDropdown(false); }}
-                    style={{
-                      padding: '10px 14px', fontSize: 13, cursor: 'pointer',
-                      background: selectedTurf?.id === t.id ? 'rgba(0,212,170,0.1)' : 'transparent',
-                      color: selectedTurf?.id === t.id ? 'var(--primary)' : 'var(--text)',
-                      borderBottom: '1px solid var(--border)',
-                    }}
+                    className={styles.turfMenuItem}
+                    data-active={selectedTurf?.id === t.id}
+                    onClick={e => { e.stopPropagation(); switchTurf(t); setTurfDropdown(false); }}
                   >
                     {t.name}
                   </div>
@@ -91,49 +98,33 @@ export default function Layout() {
       )}
 
       {/* Navigation */}
-      <nav style={{ flex: 1, padding: '16px 12px', overflowY: 'auto' }}>
+      <nav className={styles.nav}>
         {NAV.map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to}
             to={to}
             end={end}
             onClick={() => setMobileOpen(false)}
-            style={({ isActive }) => ({
-              display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px',
-              borderRadius: 10, marginBottom: 4, fontSize: 14, fontWeight: 500,
-              textDecoration: 'none', transition: 'all 0.15s',
-              background: isActive ? 'rgba(0,212,170,0.1)' : 'transparent',
-              color: isActive ? 'var(--primary)' : 'var(--text-secondary)',
-              borderLeft: isActive ? '3px solid var(--primary)' : '3px solid transparent',
-            })}
+            className={({ isActive }) => `${styles.navLink} ${isActive ? styles.navLinkActive : ''}`}
           >
-            <Icon size={17} />
-            {label}
+            <Icon size={18} />
+            <span>{label}</span>
           </NavLink>
         ))}
       </nav>
 
-      {/* User + Logout */}
-      <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-          <div style={{
-            width: 34, height: 34, borderRadius: '50%',
-            background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 14, fontWeight: 700, color: '#000', flexShrink: 0,
-          }}>
+      {/* User footer */}
+      <div className={styles.sidebarFooter}>
+        <div className={styles.userInfo}>
+          <div className={styles.avatar}>
             {user?.name?.[0]?.toUpperCase() || 'O'}
           </div>
-          <div style={{ overflow: 'hidden' }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }} className="truncate">
-              {user?.name}
-            </div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)' }} className="truncate">
-              {user?.email}
-            </div>
+          <div className={styles.userText}>
+            <div className={styles.userName}>{user?.name}</div>
+            <div className={styles.userEmail}>{user?.email}</div>
           </div>
         </div>
-        <button className="btn btn-ghost" style={{ width: '100%', justifyContent: 'center' }} onClick={handleLogout}>
+        <button className={`btn btn-ghost ${styles.logoutBtn}`} onClick={handleLogout}>
           <LogOut size={14} /> Logout
         </button>
       </div>
@@ -141,71 +132,39 @@ export default function Layout() {
   );
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
-      {/* Desktop Sidebar */}
-      <div style={{ display: 'none', position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 100 }}
-           className="desktop-sidebar">
-        {sidebarContent}
-      </div>
+    <div className={styles.layout}>
+      {/* Desktop sidebar */}
+      <aside className={styles.desktopSidebar}>
+        <SidebarContent />
+      </aside>
 
-      {/* Mobile: top bar */}
-      <div style={{
-        position: 'fixed', top: 0, left: 0, right: 0, height: 56, zIndex: 200,
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 16px', background: 'rgba(10,14,26,0.95)', backdropFilter: 'blur(20px)',
-        borderBottom: '1px solid var(--border)',
-      }} className="mobile-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 18 }}>🏟️</span>
-          <span style={{ fontWeight: 800, fontSize: 15, color: 'var(--primary)' }}>turf11 Owner</span>
-        </div>
+      {/* Mobile top bar */}
+      <header className={styles.mobileHeader}>
+        <span className={styles.mobileLogoText}>turf11 Owner</span>
         <button
+          className={styles.menuBtn}
           onClick={() => setMobileOpen(p => !p)}
-          style={{ background: 'none', border: 'none', color: 'var(--text)', padding: 6 }}
+          aria-label="Toggle navigation menu"
+          aria-expanded={mobileOpen}
         >
           {mobileOpen ? <X size={22} /> : <Menu size={22} />}
         </button>
-      </div>
+      </header>
 
-      {/* Mobile Sidebar Overlay */}
+      {/* Mobile sidebar overlay */}
       {mobileOpen && (
         <>
-          <div
-            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 150 }}
-            onClick={() => setMobileOpen(false)}
-          />
-          <div style={{
-            position: 'fixed', top: 56, left: 0, bottom: 0, width: 260, zIndex: 160,
-            animation: 'slideIn 0.25s ease',
-          }}>
-            {sidebarContent}
-          </div>
+          <div className={styles.mobileOverlay} onClick={() => setMobileOpen(false)} />
+          <aside className={styles.mobileSidebar}>
+            <SidebarContent />
+          </aside>
         </>
       )}
 
-      {/* Main Content */}
-      <main style={{
-        flex: 1,
-        marginLeft: 240,
-        minHeight: '100vh',
-        padding: '32px',
-        maxWidth: '100%',
-      }} className="main-content">
+      {/* Main content */}
+      <main className={styles.main}>
         <Outlet />
       </main>
-
-      {/* Responsive: inject styles */}
-      <style>{`
-        @media (max-width: 900px) {
-          .desktop-sidebar { display: none !important; }
-          .mobile-header { display: flex !important; }
-          .main-content { margin-left: 0 !important; padding: 76px 16px 24px !important; }
-        }
-        @media (min-width: 901px) {
-          .desktop-sidebar { display: block !important; }
-          .mobile-header { display: none !important; }
-        }
-      `}</style>
     </div>
   );
 }

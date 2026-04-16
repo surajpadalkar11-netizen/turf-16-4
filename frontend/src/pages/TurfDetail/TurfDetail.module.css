@@ -88,6 +88,77 @@
   font-size: var(--font-sm);
 }
 
+/* ── Pricing Section ── */
+.pricingSection { margin-bottom: var(--space-xl); }
+
+.sectionTitle {
+  font-size: var(--font-lg);
+  font-weight: 700;
+  margin-bottom: var(--space-md);
+  color: var(--color-text);
+}
+
+.pricingGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.pricingCard {
+  background: var(--color-bg-secondary);
+  border: 1.5px solid var(--color-border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.peakCard {
+  border-color: #fde68a;
+  background: #fffbeb;
+}
+
+.pricingLabel {
+  font-size: 11px;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--color-text-muted);
+}
+
+.pricingValue {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.peakValue { color: #d97706; }
+
+.pricingUnit {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  margin-left: 2px;
+}
+
+.peakHours {
+  font-size: 11px;
+  color: #92400e;
+  font-weight: 600;
+}
+
+.peakNotice {
+  background: linear-gradient(135deg, #fef3c7, #fffbeb);
+  border: 1.5px solid #fde68a;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #92400e;
+  line-height: 1.5;
+}
+
 .infoGrid {
   display: flex;
   gap: var(--space-lg);
@@ -275,10 +346,13 @@
   color: var(--color-text);
 }
 
+.bookingPriceRow { display: flex; align-items: center; justify-content: space-between; }
+
 .bookingPrice {
   font-size: var(--font-2xl);
   font-weight: 700;
   color: var(--color-primary);
+  margin: 0;
 }
 
 .bookingPrice span {
@@ -287,12 +361,99 @@
   color: var(--color-text-secondary);
 }
 
+.bookingPeakBadge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #d97706;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  border-radius: 20px;
+  padding: 3px 10px;
+  margin-top: 4px;
+  display: inline-block;
+}
+
 .dateField label, .slotsSection label {
   display: block;
   font-size: var(--font-sm);
   font-weight: 600;
   color: var(--color-text-secondary);
   margin-bottom: var(--space-sm);
+}
+
+.slotsSectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-sm);
+}
+
+.slotsSectionHeader label {
+  margin-bottom: 0;
+}
+
+.slotHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.liveDot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #059669;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.livePulse {
+  width: 8px;
+  height: 8px;
+  background-color: #10b981;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+.refreshBtn {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  font-size: 14px;
+}
+
+.refreshBtn:hover:not(:disabled) {
+  color: var(--color-primary);
+  background: var(--color-bg-alt);
+}
+
+.refreshBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin {
+  100% { transform: rotate(360deg); }
 }
 
 .dateInput {
@@ -362,5 +523,108 @@
 }
 
 @media (max-width: 480px) {
-  .header { flex-direction: column; }
+  .page { padding: var(--space-md) var(--space-sm) var(--space-xl); }
+  .header { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .heroImage { height: 240px; }
+  .bookingCard { padding: var(--space-md); }
+  .reviewForm { padding: 16px; }
+  .title { font-size: 1.7rem; }
+}
+
+/* ── Slot Interval Picker ── */
+.intervalSection {
+  border-top: 1px solid var(--color-border);
+  padding-top: 12px;
+}
+
+.intervalLabel {
+  display: block;
+  font-size: var(--font-sm);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-bottom: 8px !important;
+}
+
+.intervalGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.intervalBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px;
+  border: 2px solid var(--color-border);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  line-height: 1.3;
+}
+
+.intervalBtn:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+.intervalActive {
+  border-color: var(--color-primary) !important;
+  background: var(--color-primary-light) !important;
+  color: var(--color-primary) !important;
+}
+
+.intervalPrice {
+  font-size: 10px;
+  font-weight: 700;
+  color: inherit;
+  opacity: 0.8;
+}
+
+.customDurationRow {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.customInput {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 8px;
+  font-size: 13px;
+  background: var(--color-bg-input);
+  color: var(--color-text);
+  outline: none;
+}
+
+.customInput:focus { border-color: var(--color-primary); }
+
+.applyBtn {
+  padding: 8px 16px;
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.applyBtn:hover { filter: brightness(1.1); }
+
+.intervalNote {
+  font-size: 11px;
+  color: #92400e;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  padding: 6px 10px;
+  margin-top: 8px;
 }
