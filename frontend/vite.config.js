@@ -15,12 +15,6 @@ export default defineConfig({
   build: {
     // Code splitting for faster initial load
     rollupOptions: {
-      output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-          ui: ['axios'],
-        },
-      },
     },
     chunkSizeWarningLimit: 1000,
     // Minify CSS
