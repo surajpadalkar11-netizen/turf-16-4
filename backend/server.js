@@ -32,7 +32,7 @@ app.use(cors({
   origin: [
     process.env.CLIENT_URL || 'http://localhost:5173',
     process.env.ADMIN_URL || 'http://localhost:5174',
-    'http://localhost:5175'
+    process.env.TURF_ADMIN_URL || 'http://localhost:5175'
   ],
   credentials: true,
 }));
