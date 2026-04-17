@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Save, Plus } from 'lucide-react';
 import api from '../services/api';
+import TimeSelect from './TimeSelect';
 import styles from './EditTurfModal.module.css';
 
 const SPORT_OPTIONS = ['Football', 'Cricket', 'Tennis', 'Basketball', 'Badminton'];
@@ -25,7 +26,7 @@ export default function EditTurfModal({ turfId, onClose, onSave }) {
   });
 
   useEffect(() => {
-    api.get(`/turfs/${turfId}`)
+    api.get(`turfs/${turfId}`)
       .then(res => {
         if (res.data.success) {
           const t = res.data.turf;
@@ -84,7 +85,7 @@ export default function EditTurfModal({ turfId, onClose, onSave }) {
     e.preventDefault();
     setSaving(true);
     try {
-      const { data } = await api.put(`/turf-owner/turf/${turfId}`, formData);
+      const { data } = await api.put(`turf-owner/turf/${turfId}`, formData);
       if (data.success) {
         onSave(data.turf);
       } else {
@@ -159,7 +160,8 @@ export default function EditTurfModal({ turfId, onClose, onSave }) {
                 type="number" 
                 name="pricePerHour" 
                 value={formData.pricePerHour} 
-                onChange={handleChange} 
+                onChange={handleChange}
+                onWheel={e => e.target.blur()}
                 className={styles.input}
               />
             </div>
@@ -179,22 +181,16 @@ export default function EditTurfModal({ turfId, onClose, onSave }) {
           <div className={styles.grid}>
             <div>
               <label className={styles.label}>Opening Time</label>
-              <input 
-                required
-                type="time" 
+              <TimeSelect 
                 value={formData.operatingHours.open} 
-                onChange={e => handleTimeChange('open', e.target.value)} 
-                className={styles.input}
+                onChange={val => handleTimeChange('open', val)} 
               />
             </div>
             <div>
               <label className={styles.label}>Closing Time</label>
-              <input 
-                required
-                type="time" 
+              <TimeSelect 
                 value={formData.operatingHours.close} 
-                onChange={e => handleTimeChange('close', e.target.value)} 
-                className={styles.input}
+                onChange={val => handleTimeChange('close', val)} 
               />
             </div>
           </div>
@@ -206,7 +202,8 @@ export default function EditTurfModal({ turfId, onClose, onSave }) {
                 type="number" 
                 name="peakPricePerHour" 
                 value={formData.peakPricePerHour} 
-                onChange={handleChange} 
+                onChange={handleChange}
+                onWheel={e => e.target.blur()}
                 placeholder="Same as base price if empty"
                 className={styles.input}
               />
@@ -216,22 +213,16 @@ export default function EditTurfModal({ turfId, onClose, onSave }) {
           <div className={styles.grid}>
             <div>
               <label className={styles.label}>Peak Hour Start</label>
-              <input 
-                type="time" 
-                name="peakHourStart"
+              <TimeSelect 
                 value={formData.peakHourStart} 
-                onChange={handleChange} 
-                className={styles.input}
+                onChange={val => setFormData(prev => ({ ...prev, peakHourStart: val }))} 
               />
             </div>
             <div>
               <label className={styles.label}>Peak Hour End</label>
-              <input 
-                type="time" 
-                name="peakHourEnd"
+              <TimeSelect 
                 value={formData.peakHourEnd} 
-                onChange={handleChange} 
-                className={styles.input}
+                onChange={val => setFormData(prev => ({ ...prev, peakHourEnd: val }))} 
               />
             </div>
           </div>

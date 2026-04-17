@@ -1,42 +1,52 @@
-/* Bookings Page */
+/* Bookings Page v2 */
 
 .pageHeader {
   display: flex;
-  flex-wrap: wrap;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 16px;
-  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
 }
 
 .pageTitle {
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 800;
   color: var(--text);
-  margin: 0;
+  margin: 0 0 4px;
+  letter-spacing: -0.4px;
 }
 
 .pageSubtitle {
+  font-size: 13px;
   color: var(--text-secondary);
-  font-size: 14px;
-  margin-top: 4px;
+  margin: 0;
 }
 
-.filterRow {
+/* Filter bar */
+.filterBar {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
   align-items: center;
+  margin-bottom: 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 16px;
+  box-shadow: var(--shadow-sm);
 }
 
 .searchWrap {
   position: relative;
-  width: 200px;
+  min-width: 200px;
+  flex: 1;
+  max-width: 300px;
 }
 
 .searchIcon {
   position: absolute;
-  left: 10px;
+  left: 11px;
   top: 50%;
   transform: translateY(-50%);
   color: var(--text-muted);
@@ -44,7 +54,31 @@
 }
 
 .searchInput {
-  padding-left: 32px !important;
+  padding-left: 34px !important;
+  padding-right: 32px !important;
+}
+
+.searchClear {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+}
+.searchClear:hover { color: var(--text); background: var(--bg-glass-hover); }
+
+.totalCount {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-left: auto;
 }
 
 /* Loading */
@@ -60,94 +94,88 @@
   padding: 60px 20px;
   color: var(--text-secondary);
 }
+.emptyCard h3 { margin-bottom: 8px; }
+.emptyCard p { color: var(--text-muted); font-size: 13px; }
 
 /* Desktop Table */
 .tableCard {
   padding: 0;
   overflow: hidden;
+  margin-bottom: 16px;
 }
 
-.customerName { font-weight: 700; font-size: 15px; margin-bottom: 3px; }
-.customerPhone { font-size: 13px; color: var(--text-secondary); }
+.customerName { font-weight: 700; font-size: 14px; color: var(--text); margin-bottom: 2px; }
+.customerPhone { font-size: 12px; color: var(--text-muted); }
 
-.bookingDate { font-weight: 700; font-size: 14px; margin-bottom: 3px; }
-.bookingSlots { font-size: 13px; color: var(--primary); font-weight: 700; }
+.bookingDate { font-weight: 700; font-size: 13px; margin-bottom: 2px; }
+.bookingSlots { font-size: 12px; color: var(--primary); font-weight: 600; }
 
-.payTotal { font-size: 13px; color: var(--text-muted); margin-bottom: 4px; }
+.payTotal { font-size: 13px; color: var(--text-secondary); margin-bottom: 3px; }
 .payPending {
-  font-size: 13px; font-weight: 700; color: #ef4444;
+  font-size: 12px; font-weight: 700; color: #dc2626;
   background: rgba(239,68,68,0.1); display: inline-block;
-  padding: 3px 10px; border-radius: 6px;
+  padding: 2px 9px; border-radius: 5px;
 }
-.payDone { font-size: 13px; font-weight: 700; color: #10b981; }
+.payDone { font-size: 12px; font-weight: 700; color: #059669; }
 
 .actionGroup {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-  align-items: center;
-  flex-wrap: wrap;
+  display: flex; gap: 6px; justify-content: flex-end; align-items: center; flex-wrap: wrap;
 }
+
+.doneNote { font-size: 12px; color: var(--text-muted); font-style: italic; }
 
 /* Pagination */
 .pagination {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 20px;
+  display: flex; align-items: center; justify-content: center; gap: 12px; padding: 16px;
 }
+.pageInfo { font-size: 13px; font-weight: 600; color: var(--text-secondary); }
 
-.pageInfo {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-/* Mobile cards - hidden on desktop */
+/* Mobile cards — hidden on desktop */
 .mobileCards { display: none; }
 
-.mobileCard {
-  margin-bottom: 12px;
-  padding: 16px;
-}
+.mobileCard { margin-bottom: 12px; }
 
 .mobileCardTop {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
+  gap: 10px;
   margin-bottom: 10px;
 }
 
-.mobileCardMeta {
-  display: flex;
-  gap: 12px;
-  font-size: 13px;
-  color: var(--text-secondary);
-  margin-bottom: 8px;
-  flex-wrap: wrap;
+.mobileAvatar {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: 800; color: #fff;
+  flex-shrink: 0;
 }
 
-.mobileCardPayment {
-  display: flex;
-  justify-content: space-between;
+.mobileInfo { flex: 1; min-width: 0; }
+
+.mobileMeta {
+  display: flex; gap: 12px; flex-wrap: wrap;
+  font-size: 12px; color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.mobilePayRow {
+  display: flex; justify-content: space-between;
   font-size: 13px;
-  margin-bottom: 12px;
   padding: 8px 12px;
   background: var(--bg);
   border-radius: 8px;
+  margin-bottom: 10px;
 }
 
-.mobileCardActions {
-  display: flex;
-  gap: 8px;
-}
+.mobileActions { display: flex; gap: 8px; }
 
 /* Modal */
 .modalOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.75);
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(4px);
   z-index: 999;
   display: flex;
   align-items: center;
@@ -156,27 +184,48 @@
 }
 
 .modal {
-  background: var(--bg-alt);
+  background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 28px;
+  border-radius: var(--radius-lg);
+  padding: 24px;
   width: 100%;
   max-width: 400px;
+  box-shadow: var(--shadow-lg);
+  animation: slideUp 0.25s ease;
 }
 
-.modalTitle {
-  font-size: 20px;
-  font-weight: 800;
-  color: #f59e0b;
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 16px;
 }
 
+.modalTitle {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.modalClose {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: all var(--t);
+}
+.modalClose:hover { background: rgba(239,68,68,0.1); color: #ef4444; border-color: rgba(239,68,68,0.3); }
+
 .modalInfo {
   background: var(--bg);
-  padding: 14px;
+  padding: 12px 14px;
   border-radius: 10px;
-  margin-bottom: 18px;
+  margin-bottom: 16px;
   font-size: 13px;
+  border: 1px solid var(--border);
 }
 
 .pendingAmt {
@@ -186,36 +235,21 @@
   margin-top: 6px;
 }
 
-.modalField {
-  margin-bottom: 20px;
-}
-
-.modalField label {
-  display: block;
-  font-size: 13px;
-  font-weight: 600;
-  margin-bottom: 8px;
-  color: var(--text-secondary);
-}
-
 .modalActions {
   display: flex;
   gap: 10px;
 }
-
 .modalActions button { flex: 1; }
 
 /* ── Responsive ── */
 @media (max-width: 768px) {
-  .pageHeader { flex-direction: column; align-items: stretch; }
-  .filterRow { flex-direction: column; align-items: stretch; }
-  .searchWrap { width: 100%; }
-
-  /* Hide desktop table, show mobile cards */
   .tableCard { display: none; }
   .mobileCards { display: block; }
+  .filterBar { flex-direction: column; align-items: stretch; }
+  .searchWrap { max-width: 100%; }
+  .totalCount { margin-left: 0; }
 }
 
 @media (max-width: 480px) {
-  .pageTitle { font-size: 22px; }
+  .pageTitle { font-size: 20px; }
 }

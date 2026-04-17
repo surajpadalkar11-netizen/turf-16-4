@@ -20,14 +20,12 @@ export default function Layout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [turfDropdown, setTurfDropdown] = useState(false);
 
-  // Close mobile menu on resize to desktop
   useEffect(() => {
     const onResize = () => { if (window.innerWidth >= 900) setMobileOpen(false); };
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
-  // Prevent body scroll when mobile menu open
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
@@ -43,21 +41,10 @@ export default function Layout() {
       {/* Logo */}
       <div className={styles.sidebarHeader}>
         <div className={styles.logo}>
-          <div className={styles.logoIcon}>
-            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-              <rect width="28" height="28" rx="8" fill="url(#adminGrad)" />
-              <text x="14" y="20" textAnchor="middle" fontSize="14" fill="white" fontWeight="800" fontFamily="system-ui">11</text>
-              <defs>
-                <linearGradient id="adminGrad" x1="0" y1="0" x2="28" y2="28">
-                  <stop offset="0%" stopColor="#00d4aa" />
-                  <stop offset="100%" stopColor="#00a884" />
-                </linearGradient>
-              </defs>
-            </svg>
-          </div>
+          <div className={styles.logoIcon}>⛳</div>
           <div>
             <div className={styles.logoName}>turf11</div>
-            <div className={styles.logoTag}>OWNER PANEL</div>
+            <div className={styles.logoTag}>Owner Panel</div>
           </div>
         </div>
       </div>
@@ -72,12 +59,12 @@ export default function Layout() {
             onClick={() => turfs.length > 1 && setTurfDropdown(p => !p)}
           >
             <div className={styles.turfDropdownRow}>
-              <Building2 size={14} color="var(--primary)" />
+              <Building2 size={13} color="var(--primary)" />
               <span className={styles.turfName}>{selectedTurf?.name || 'Select Turf'}</span>
             </div>
             {turfs.length > 1 && (
-              <ChevronDown size={14} color="var(--text-muted)"
-                style={{ transform: turfDropdown ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+              <ChevronDown size={13} color="var(--text-muted)"
+                style={{ transform: turfDropdown ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }} />
             )}
             {turfDropdown && turfs.length > 1 && (
               <div className={styles.turfMenu}>
@@ -107,7 +94,7 @@ export default function Layout() {
             onClick={() => setMobileOpen(false)}
             className={({ isActive }) => `${styles.navLink} ${isActive ? styles.navLinkActive : ''}`}
           >
-            <Icon size={18} />
+            <Icon size={17} />
             <span>{label}</span>
           </NavLink>
         ))}
@@ -121,11 +108,11 @@ export default function Layout() {
           </div>
           <div className={styles.userText}>
             <div className={styles.userName}>{user?.name}</div>
-            <div className={styles.userEmail}>{user?.email}</div>
+            <div className={styles.userRole}>Owner</div>
           </div>
         </div>
         <button className={`btn btn-ghost ${styles.logoutBtn}`} onClick={handleLogout}>
-          <LogOut size={14} /> Logout
+          <LogOut size={13} /> Sign Out
         </button>
       </div>
     </div>
@@ -140,18 +127,23 @@ export default function Layout() {
 
       {/* Mobile top bar */}
       <header className={styles.mobileHeader}>
-        <span className={styles.mobileLogoText}>turf11 Owner</span>
+        <div className={styles.mobileLogoWrap}>
+          <div style={{ width: 28, height: 28, background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>⛳</div>
+          <div>
+            <div className={styles.mobileLogoText}>turf11</div>
+          </div>
+        </div>
         <button
           className={styles.menuBtn}
           onClick={() => setMobileOpen(p => !p)}
-          aria-label="Toggle navigation menu"
+          aria-label="Toggle menu"
           aria-expanded={mobileOpen}
         >
-          {mobileOpen ? <X size={22} /> : <Menu size={22} />}
+          {mobileOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
       </header>
 
-      {/* Mobile sidebar overlay */}
+      {/* Mobile drawer */}
       {mobileOpen && (
         <>
           <div className={styles.mobileOverlay} onClick={() => setMobileOpen(false)} />

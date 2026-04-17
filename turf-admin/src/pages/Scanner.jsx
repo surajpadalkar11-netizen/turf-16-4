@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
 import { QRCodeSVG as QRCode } from 'qrcode.react';
 
 const CLIENT_URL = import.meta.env.VITE_CLIENT_URL || 'http://localhost:5173';
@@ -20,7 +21,7 @@ export default function Scanner() {
     setError('');
     setResult(null);
     try {
-      const { data } = await api.post('/turf-owner/verify-booking', {
+      const { data } = await api.post('turf-owner/verify-booking', {
         bookingCode: code.trim().toUpperCase(),
         turfId: selectedTurf?.id,
       });

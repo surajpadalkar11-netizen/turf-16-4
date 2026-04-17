@@ -1,0 +1,347 @@
+/* Slots Page */
+
+.pageHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.pageTitle {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text);
+  margin: 0 0 4px;
+  letter-spacing: -0.4px;
+}
+
+.pageSubtitle {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* Pricing panel */
+.pricingPanel {
+  background: rgba(245,158,11,0.04);
+  border: 1.5px solid rgba(245,158,11,0.2);
+  border-radius: 14px;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.pricingToggleBtn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background var(--t);
+}
+.pricingToggleBtn:hover { background: rgba(245,158,11,0.06); }
+
+.pricingLeft { display: flex; align-items: center; gap: 12px; }
+
+.pricingIcon {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  background: rgba(245,158,11,0.12);
+  border: 1px solid rgba(245,158,11,0.2);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+.pricingTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  text-align: left;
+}
+
+.pricingMeta {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: left;
+  margin-top: 2px;
+}
+
+.pricingBody {
+  padding: 0 16px 16px;
+  border-top: 1px solid rgba(245,158,11,0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 14px;
+}
+
+.pricingRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.pricingPreview {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #065f46;
+}
+
+/* Jump dates */
+.jumpDates {
+  background: var(--bg-card);
+  border: 1px solid rgba(5,150,105,0.2);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.jumpLabel {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.jumpChips { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* Control bar */
+.controlBar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.dateNav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.intervalGroup { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
+
+.presetBtns {
+  display: flex;
+  gap: 4px;
+  background: var(--bg-card);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 4px;
+  flex-wrap: wrap;
+}
+
+.customRow { display: flex; gap: 8px; align-items: center; }
+
+/* Summary bar */
+.summaryBar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.summaryPill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  box-shadow: var(--shadow-sm);
+}
+.summaryPill strong { font-weight: 800; }
+
+/* Block hint */
+.blockHint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(239,68,68,0.04);
+  border: 1px solid rgba(239,68,68,0.15);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 12px;
+  color: #b91c1c;
+  margin-bottom: 16px;
+}
+
+/* Loading */
+.loadingWrap {
+  display: flex;
+  justify-content: center;
+  padding: 60px 20px;
+}
+
+/* Empty */
+.emptySlots {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-secondary);
+}
+.emptySlots h3 { margin-bottom: 8px; }
+.emptySlots p { color: var(--text-muted); font-size: 13px; }
+
+/* Slot Grid */
+.slotGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+  gap: 12px;
+}
+
+/* Slot Card */
+.slotCard {
+  background: #fff;
+  border: 1.5px solid var(--border);
+  border-left-width: 4px;
+  border-radius: 12px;
+  padding: 14px;
+  transition: box-shadow var(--t), transform var(--t);
+}
+.slotCard:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
+
+.slotCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.slotCardTime {
+  font-size: 14px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.slotCardTimeSep {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.slotCardBadge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 20px;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+/* Slot body */
+.slotCardBody { border-top: 1px solid var(--border); padding-top: 8px; }
+
+.slotCustomerName { font-size: 13px; font-weight: 700; color: var(--text); }
+.slotCustomerPhone { font-size: 11px; color: var(--text-muted); margin: 2px 0 6px; }
+
+.slotPayRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.slotPaid { color: #059669; font-weight: 700; }
+.slotDue  { color: #f59e0b; font-weight: 700; }
+.slotTotal { color: var(--text); font-weight: 800; margin-left: auto; font-size: 12px; }
+
+.slotActions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.slotBlockRow { margin-top: 6px; }
+.blockBtn { width: 100%; justify-content: center; }
+
+/* Collect modal */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(4px);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.modal {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  width: 100%;
+  max-width: 380px;
+  box-shadow: var(--shadow-lg);
+  animation: slideUp 0.25s ease;
+}
+
+.modalTitle {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 16px;
+}
+
+.modalInfo {
+  background: var(--bg);
+  padding: 14px;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  border: 1px solid var(--border);
+}
+
+.modalDue {
+  color: #ef4444;
+  font-weight: 700;
+  margin-top: 6px;
+  font-size: 14px;
+}
+
+.modalField { margin-bottom: 18px; }
+.modalField .form-label { margin-bottom: 8px; display: block; }
+
+.modalActions {
+  display: flex;
+  gap: 10px;
+}
+.modalActions button { flex: 1; }
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .controlBar { flex-direction: column; }
+  .intervalGroup { align-items: flex-start; }
+}
+
+@media (max-width: 600px) {
+  .pricingRow { grid-template-columns: 1fr; }
+  .slotGrid { grid-template-columns: 1fr 1fr; }
+  .jumpDates { flex-direction: column; align-items: flex-start; }
+}
+
+@media (max-width: 400px) {
+  .slotGrid { grid-template-columns: 1fr; }
+}

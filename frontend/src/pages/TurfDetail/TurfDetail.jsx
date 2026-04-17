@@ -6,7 +6,7 @@ import SlotPicker from '../../components/SlotPicker/SlotPicker';
 import ReviewCard from '../../components/ReviewCard/ReviewCard';
 import { getTurf, getAvailableSlots } from '../../services/turfService';
 import { getTurfReviews, createReview } from '../../services/reviewService';
-import { formatPrice, getSportIcon } from '../../utils/formatters';
+import { formatPrice, getSportIcon, formatTime } from '../../utils/formatters';
 import { AMENITIES } from '../../utils/constants';
 import styles from './TurfDetail.module.css';
 
@@ -229,7 +229,7 @@ function TurfDetail() {
                   <div className={`${styles.pricingCard} ${styles.peakCard}`}>
                     <span className={styles.pricingLabel}>🌙 Night Rate</span>
                     <span className={`${styles.pricingValue} ${styles.peakValue}`}>{formatPrice(turf.peakPricePerHour)}<span className={styles.pricingUnit}>/hr</span></span>
-                    <span className={styles.peakHours}>{turf.peakHourStart} – {turf.peakHourEnd}</span>
+                    <span className={styles.peakHours}>{formatTime(turf.peakHourStart)} – {formatTime(turf.peakHourEnd)}</span>
                   </div>
                   <div className={`${styles.pricingCard} ${styles.peakCard}`}>
                     <span className={styles.pricingLabel}>🌙 Night 30 Min</span>
@@ -241,7 +241,7 @@ function TurfDetail() {
             {turf.peakPricePerHour && (
               <div className={styles.peakNotice}>
                 👉 “Night charges include lighting cost 💡”<br/>
-                Night pricing applies from <strong>{turf.peakHourStart}</strong> to <strong>{turf.peakHourEnd}</strong>.
+                Night pricing applies from <strong>{formatTime(turf.peakHourStart)}</strong> to <strong>{formatTime(turf.peakHourEnd)}</strong>.
               </div>
             )}
           </div>
@@ -249,7 +249,7 @@ function TurfDetail() {
           <div className={styles.infoGrid}>
             <div className={styles.infoItem}>
               <span className={styles.infoLabel}>Hours</span>
-              <span className={styles.infoValue}>{turf.operatingHours?.open} – {turf.operatingHours?.close}</span>
+              <span className={styles.infoValue}>{formatTime(turf.operatingHours?.open)} – {formatTime(turf.operatingHours?.close)}</span>
             </div>
             {turf.dimensions?.length && (
               <div className={styles.infoItem}>
@@ -390,6 +390,7 @@ function TurfDetail() {
                         step={15}
                         value={customMinutes}
                         onChange={e => setCustomMinutes(e.target.value)}
+                        onWheel={e => e.target.blur()}
                         placeholder="Minutes (e.g. 45)"
                         className={styles.customInput}
                         id="custom-duration-input"

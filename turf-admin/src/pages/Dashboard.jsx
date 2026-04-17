@@ -1,218 +1,295 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import {
-  TrendingUp, CalendarDays, IndianRupee, Clock,
-  CheckCircle2, AlertCircle, XCircle, Users, Download, FileText, ChevronDown, Edit
+  Edit, Download, FileText, ChevronDown, RefreshCw,
+  TrendingUp, IndianRupee, CalendarDays, Percent,
+  CheckCircle2, Clock, AlertCircle,
 } from 'lucide-react';
 import EditTurfModal from '../components/EditTurfModal';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import styles from './Dashboard.module.css';
 
+/* ── Helpers ── */
 const fmt = (n) => new Intl.NumberFormat('en-IN').format(Math.round(n || 0));
 
-function StatCard({ icon: Icon, label, value, sub, color }) {
-  return (
-    <div className={`card ${styles.statCard}`}>
-      <div className={styles.statCardBg} style={{ background: `radial-gradient(circle, ${color}20 0%, transparent 70%)` }} />
-      <div className={styles.statHeader}>
-        <div className={styles.statIcon} style={{ background: `${color}18`, border: `1px solid ${color}30` }}>
-          <Icon size={18} color={color} />
-        </div>
-      </div>
-      <div className={styles.statValue}>{value}</div>
-      <div className={styles.statLabel}>{label}</div>
-      {sub && <div className={styles.statSub}>{sub}</div>}
-    </div>
-  );
-}
+const formatTime = (t) => {
+  if (!t) return '';
+  const [h, m] = t.split(':');
+  let hours = parseInt(h, 10);
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12 || 12;
+  return `${hours}:${m} ${ampm}`;
+};
 
-function PaymentBreakdown({ data, label }) {
-  const total = data?.totalBookings || 0;
-  if (!total) return null;
-  const paid = ((data.fullyPaid / total) * 100).toFixed(0);
-  const partial = ((data.partiallyPaid / total) * 100).toFixed(0);
-  const unpaid = ((data.unpaid / total) * 100).toFixed(0);
+const today = () => new Date().toISOString().split('T')[0];
+
+/* ── Stat Card ── */
+function StatCard({ icon, label, value, sub, color, iconBg }) {
   return (
-    <div className="card">
-      <h3 className={styles.breakdownTitle}>{label} — Payment Breakdown</h3>
-      <div className={styles.breakdownGrid}>
-        {[
-          { label: 'Fully Paid', count: data.fullyPaid, pct: paid, color: '#10b981' },
-          { label: 'Partial', count: data.partiallyPaid, pct: partial, color: '#f59e0b' },
-          { label: 'Unpaid', count: data.unpaid, pct: unpaid, color: '#ef4444' },
-        ].map(({ label, count, pct, color }) => (
-          <div key={label} className={styles.breakdownItem}>
-            <div className={styles.breakdownCount} style={{ color }}>{count}</div>
-            <div className={styles.breakdownItemLabel}>{label}</div>
-            <div className={styles.breakdownPct}>{pct}%</div>
-          </div>
-        ))}
+    <div className={styles.statCard}>
+      <div className={styles.statIconWrap} style={{ background: iconBg || `${color}18`, border: `1px solid ${color}25` }}>
+        <span style={{ fontSize: 22 }}>{icon}</span>
       </div>
-      <div className={styles.progressBar}>
-        <div style={{ flex: data.fullyPaid, background: '#10b981', minWidth: data.fullyPaid ? 4 : 0 }} />
-        <div style={{ flex: data.partiallyPaid, background: '#f59e0b', minWidth: data.partiallyPaid ? 4 : 0 }} />
-        <div style={{ flex: data.unpaid, background: '#ef4444', minWidth: data.unpaid ? 4 : 0 }} />
+      <div className={styles.statInfo}>
+        <div className={styles.statValue}>{value}</div>
+        <div className={styles.statLabel}>{label}</div>
+        {sub && <div className={styles.statSub}>{sub}</div>}
       </div>
     </div>
   );
 }
 
-function GraphsSection({ stats }) {
-  if (!stats) return null;
-
-  const barData = [
-    { name: 'Today', bookings: stats.today?.totalBookings || 0, revenue: stats.today?.revenue || 0 },
-    { name: 'Month', bookings: stats.month?.totalBookings || 0, revenue: stats.month?.revenue || 0 },
-    { name: 'All-Time', bookings: stats.overall?.totalBookings || 0, revenue: stats.overall?.revenue || 0 },
+/* ── Occupancy ring ── */
+function OccupancyRing({ pct }) {
+  const data = [
+    { name: 'Booked', value: pct, color: '#059669' },
+    { name: 'Free', value: 100 - pct, color: '#e2e8f0' },
   ];
-
-  const pieData = [
-    { name: 'Fully Paid', value: stats.overall?.fullyPaid || 0, color: '#3b82f6' },
-    { name: 'Partial', value: stats.overall?.partiallyPaid || 0, color: '#8b5cf6' },
-    { name: 'Unpaid', value: stats.overall?.unpaid || 0, color: '#ec4899' },
-  ].filter(d => d.value > 0);
-
   return (
-    <div className={styles.chartsGrid}>
-      <div className="card">
-        <h3 className={styles.chartTitle}>
-          <TrendingUp size={18} color="#8b5cf6" /> Bookings Growth
-        </h3>
-        <div className={styles.chartWrap}>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={barData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-              <defs>
-                <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#ec4899" stopOpacity={0.9} />
-                  <stop offset="50%" stopColor="#8b5cf6" stopOpacity={0.9} />
-                  <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.9} />
-                </linearGradient>
-              </defs>
-              <XAxis dataKey="name" fontSize={12} stroke="var(--text-muted)" tickLine={false} axisLine={false} />
-              <YAxis fontSize={12} stroke="var(--text-muted)" tickLine={false} axisLine={false} />
-              <Tooltip
-                cursor={{ fill: 'rgba(0,0,0,0.02)' }}
-                contentStyle={{ borderRadius: 12, border: '1px solid rgba(139,92,246,0.2)', backgroundColor: '#fff', color: '#0f172a' }}
-                itemStyle={{ color: '#0f172a', fontWeight: 600 }}
-              />
-              <Bar dataKey="bookings" fill="url(#barGrad)" radius={[6, 6, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      <div className="card">
-        <h3 className={styles.chartTitle}>
-          <IndianRupee size={18} color="#ec4899" /> All-Time Payment Status
-        </h3>
-        <div className={styles.chartWrap}>
-          {pieData.length === 0 ? (
-            <p className={styles.noData}>No payment data</p>
-          ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={pieData} cx="50%" cy="50%" innerRadius={55} outerRadius={80} paddingAngle={6} dataKey="value" stroke="none">
-                  {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} style={{ filter: 'drop-shadow(0px 4px 8px rgba(0,0,0,0.2))' }} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{ borderRadius: 12, border: '1px solid rgba(236,72,153,0.2)', backgroundColor: '#fff', color: '#0f172a' }}
-                  itemStyle={{ fontWeight: 600 }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-        {/* Legend */}
-        <div className={styles.pieLegend}>
-          {pieData.map(d => (
-            <div key={d.name} className={styles.legendItem}>
-              <span className={styles.legendDot} style={{ background: d.color }} />
-              <span>{d.name}: <strong>{d.value}</strong></span>
-            </div>
-          ))}
-        </div>
+    <div className={styles.ringWrap}>
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={data}
+            cx="50%" cy="50%"
+            innerRadius="60%" outerRadius="80%"
+            startAngle={90} endAngle={-270}
+            dataKey="value"
+            strokeWidth={0}
+          >
+            {data.map((entry, i) => (
+              <Cell key={i} fill={entry.color} />
+            ))}
+          </Pie>
+        </PieChart>
+      </ResponsiveContainer>
+      <div className={styles.ringLabel}>
+        <div className={styles.ringPct}>{pct}%</div>
       </div>
     </div>
   );
 }
 
-const FILTER_OPTIONS = [
-  { value: 'today', label: 'Today' },
-  { value: 'week', label: 'Week' },
-  { value: 'month', label: 'Month' },
-  { value: 'overall', label: 'All Time' },
-];
+/* ── Booking Schedule Item ── */
+function ScheduleItem({ slot }) {
+  const bk = slot.booking;
+  const status = slot.slotStatus;
 
+  const statusStyle = {
+    booked: { label: 'Booked', bg: '#059669', text: '#fff' },
+    pending: { label: 'Pending', bg: '#f59e0b', text: '#fff' },
+    completed: { label: 'Done', bg: '#8b5cf6', text: '#fff' },
+    blocked: { label: 'Blocked', bg: '#ef4444', text: '#fff' },
+    available: { label: 'Available', bg: '#e2e8f0', text: '#94a3b8' },
+  }[status] || { label: status, bg: '#e2e8f0', text: '#94a3b8' };
+
+  return (
+    <div className={styles.scheduleItem} data-status={status}>
+      <div className={styles.scheduleTime}>
+        <span className={styles.timeMain}>{formatTime(slot.start)}</span>
+        <span className={styles.timeSub}>{formatTime(slot.end)}</span>
+      </div>
+      <div className={styles.scheduleBody}>
+        {bk && status !== 'blocked' ? (
+          <>
+            <div className={styles.scheduleCustomer}>{bk.customer?.name || '—'}</div>
+            {bk.customer?.phone && <div className={styles.schedulePhone}>{bk.customer.phone}</div>}
+            <div
+              className={styles.scheduleConfirm}
+              style={{ color: bk.bookingStatus === 'confirmed' ? '#059669' : '#f59e0b' }}
+            >
+              {bk.bookingStatus}
+            </div>
+          </>
+        ) : (
+          <div className={styles.scheduleEmpty}>{status === 'blocked' ? 'Admin Blocked' : 'remaining'}</div>
+        )}
+      </div>
+      <div
+        className={styles.scheduleStatus}
+        style={{ background: statusStyle.bg, color: statusStyle.text }}
+      >
+        {statusStyle.label}
+      </div>
+    </div>
+  );
+}
+
+/* ── Booking Slot Row ── */
+function SlotRow({ slot }) {
+  const bk = slot.booking;
+  const status = slot.slotStatus;
+  const isEmpty = !bk || status === 'available';
+  const price = bk?.totalAmount ?? 0;
+
+  return (
+    <div className={styles.slotRow}>
+      <div className={styles.slotTime}>
+        <span>{formatTime(slot.start)}</span>
+        {bk && status !== 'available' && (
+          <span className={styles.slotArrow}>›</span>
+        )}
+        {bk?.customer?.phone && (
+          <span className={styles.slotPhone}>{bk.customer.phone}</span>
+        )}
+      </div>
+      <div className={styles.slotRight}>
+        {isEmpty ? (
+          <span className={styles.slotRemaining}>remaining</span>
+        ) : (
+          <span className={styles.slotAmount}>₹{fmt(price)}</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── Recent Booking Row ── */
+function RecentBookingRow({ booking }) {
+  const statusStyle = {
+    confirmed: { label: 'Confirmed', cls: 'badge-success' },
+    pending: { label: 'Pending', cls: 'badge-warning' },
+    completed: { label: 'Done', cls: 'badge-purple' },
+    cancelled: { label: 'Cancelled', cls: 'badge-danger' },
+  }[booking.status] || { label: booking.status, cls: 'badge-muted' };
+
+  return (
+    <div className={styles.recentRow}>
+      <div className={styles.recentAvatar}>
+        {(booking.user?.name || 'U')[0].toUpperCase()}
+      </div>
+      <div className={styles.recentInfo}>
+        <div className={styles.recentName}>{booking.user?.name || '—'}</div>
+        <div className={styles.recentMeta}>
+          {booking.turf?.name || '—'} · {new Date(booking.date + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+        </div>
+      </div>
+      <div className={styles.recentRight}>
+        <span className={`badge ${statusStyle.cls}`}>{statusStyle.label}</span>
+        <div className={styles.recentAmount}>₹{fmt(booking.totalAmount)}</div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Main Dashboard
+═══════════════════════════════════════════════════════════ */
 export default function Dashboard() {
-  const { selectedTurf } = useAuth();
+  const { user, selectedTurf } = useAuth();
   const [stats, setStats] = useState(null);
-  const [isActive, setIsActive] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [isActive, setIsActive] = useState(true);
   const [toggling, setToggling] = useState(false);
-  const [downloadingPdf, setDownloadingPdf] = useState(false);
-  const [filter, setFilter] = useState('month');
+  const [loading, setLoading] = useState(true);
+  const [todaySlots, setTodaySlots] = useState([]);
+  const [slotsLoading, setSlotsLoading] = useState(true);
+  const [recentBookings, setRecentBookings] = useState([]);
+  const [isEditOpen, setIsEditOpen] = useState(false);
   const [downloadMenuOpen, setDownloadMenuOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const today = new Date().toLocaleDateString('en-IN', {
-    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+  const dateDisplay = new Date().toLocaleDateString('en-IN', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   });
 
-  useEffect(() => {
-    const handleClick = (e) => {
-      if (!e.target.closest('[data-dropdown="download"]')) setDownloadMenuOpen(false);
-    };
-    if (downloadMenuOpen) document.addEventListener('click', handleClick);
-    return () => document.removeEventListener('click', handleClick);
-  }, [downloadMenuOpen]);
-
-  useEffect(() => {
+  /* Fetch stats */
+  const fetchStats = useCallback(async () => {
     if (!selectedTurf?.id) { setLoading(false); return; }
     setLoading(true);
-    api.get(`/turf-owner/stats/${selectedTurf.id}`)
-      .then(r => { setStats(r.data.stats); setIsActive(r.data.isActive); })
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    try {
+      const r = await api.get(`turf-owner/stats/${selectedTurf.id}`);
+      setStats(r.data.stats);
+      setIsActive(r.data.isActive);
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
   }, [selectedTurf?.id]);
 
-  const handleToggleStatus = async () => {
-    if (!window.confirm(`Are you sure you want to ${isActive ? 'DISABLE' : 'ENABLE'} this turf?`)) return;
-    setToggling(true);
+  /* Fetch today slots */
+  const fetchTodaySlots = useCallback(async () => {
+    if (!selectedTurf?.id) { setSlotsLoading(false); return; }
+    setSlotsLoading(true);
     try {
-      const { data } = await api.put(`/turf-owner/turf/${selectedTurf.id}/toggle-status`);
-      if (data.success) setIsActive(data.is_active);
-    } catch (e) {
-      alert('Failed to toggle turf status');
-    } finally {
-      setToggling(false);
-    }
+      const { data } = await api.get(`turf-owner/slots/${selectedTurf.id}?date=${today()}&interval=60`);
+      setTodaySlots(data.slots || []);
+    } catch (e) { console.error(e); }
+    finally { setSlotsLoading(false); }
+  }, [selectedTurf?.id]);
+
+  /* Fetch recent bookings */
+  const fetchRecent = useCallback(async () => {
+    if (!selectedTurf?.id) return;
+    try {
+      const { data } = await api.get(`turf-owner/bookings/${selectedTurf.id}?limit=5&page=1`);
+      setRecentBookings(data.bookings || []);
+    } catch (e) { console.error(e); }
+  }, [selectedTurf?.id]);
+
+  useEffect(() => {
+    fetchStats();
+    fetchTodaySlots();
+    fetchRecent();
+  }, [fetchStats, fetchTodaySlots, fetchRecent]);
+
+  /* Close download menu on outside click */
+  useEffect(() => {
+    const fn = (e) => { if (!e.target.closest('[data-dl]')) setDownloadMenuOpen(false); };
+    if (downloadMenuOpen) document.addEventListener('click', fn);
+    return () => document.removeEventListener('click', fn);
+  }, [downloadMenuOpen]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([fetchStats(), fetchTodaySlots(), fetchRecent()]);
+    setRefreshing(false);
   };
 
+  const handleToggleStatus = async () => {
+    if (!window.confirm(`${isActive ? 'Disable' : 'Enable'} this turf?`)) return;
+    setToggling(true);
+    try {
+      const { data } = await api.put(`turf-owner/turf/${selectedTurf.id}/toggle-status`);
+      if (data.success) setIsActive(data.is_active);
+    } catch { alert('Failed to toggle status'); }
+    finally { setToggling(false); }
+  };
+
+  /* ── Derived values ── */
+  const overall = stats?.overall || {};
+  const month = stats?.month || {};
+  const todayStats = stats?.today || {};
+
+  const totalSlots = todaySlots.length;
+  const bookedSlots = todaySlots.filter(s => ['booked', 'pending', 'completed'].includes(s.slotStatus)).length;
+  const remainingSlots = todaySlots.filter(s => s.slotStatus === 'available').length;
+  const cancelledSlots = todaySlots.filter(s => s.slotStatus === 'blocked').length;
+  const occupancy = totalSlots > 0 ? Math.round((bookedSlots / totalSlots) * 100) : 0;
+
+  /* Donut chart data */
+  const donutData = [
+    { name: 'Booked', value: bookedSlots, color: '#059669' },
+    { name: 'Remaining', value: remainingSlots, color: '#f59e0b' },
+    { name: 'Cancelled', value: cancelledSlots, color: '#ef4444' },
+  ].filter(d => d.value > 0);
+
+  /* CSV download */
   const handleDownloadCSV = () => {
     if (!stats || !selectedTurf) return;
-    const { overall, month, today: todayStats } = stats;
-    const csvRows = [
-      ['Turf Performance Report', selectedTurf.name],
-      ['Generated On', new Date().toLocaleString()],
-      [],
-      ['Metric', 'All-Time', 'This Month', 'Today'],
-      ['Total Bookings', overall?.totalBookings || 0, month?.totalBookings || 0, todayStats?.totalBookings || 0],
-      ['Revenue (Rs)', overall?.revenue || 0, month?.revenue || 0, todayStats?.revenue || 0],
-      ['Pending Cash (Rs)', overall?.pending || 0, month?.pending || 0, todayStats?.pending || 0],
-      ['Fully Paid', overall?.fullyPaid || 0, month?.fullyPaid || 0, todayStats?.fullyPaid || 0],
+    const rows = [
+      ['Metric', 'Today', 'This Month', 'All-Time'],
+      ['Bookings', todayStats.totalBookings ?? 0, month.totalBookings ?? 0, overall.totalBookings ?? 0],
+      ['Revenue', todayStats.revenue ?? 0, month.revenue ?? 0, overall.revenue ?? 0],
+      ['Pending Cash', todayStats.pending ?? 0, month.pending ?? 0, overall.pending ?? 0],
+      ['Fully Paid', todayStats.fullyPaid ?? 0, month.fullyPaid ?? 0, overall.fullyPaid ?? 0],
     ];
-    const csv = 'data:text/csv;charset=utf-8,' + csvRows.map(e => e.join(',')).join('\n');
-    const link = document.createElement('a');
-    link.setAttribute('href', encodeURI(csv));
-    link.setAttribute('download', `TurfReport_${selectedTurf.name.replace(/\s+/g, '_')}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const csv = 'data:text/csv;charset=utf-8,' + rows.map(r => r.join(',')).join('\n');
+    const a = document.createElement('a');
+    a.href = encodeURI(csv);
+    a.download = `TurfReport_${(selectedTurf.name || 'turf').replace(/\s+/g, '_')}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
   };
 
   const handleDownloadPDF = () => {
@@ -220,170 +297,288 @@ export default function Dashboard() {
     setDownloadingPdf(true);
     try {
       const doc = new jsPDF();
-      doc.setFontSize(22); doc.setTextColor(15, 23, 42);
+      doc.setFontSize(20); doc.setTextColor(15, 23, 42);
       doc.text(selectedTurf.name, 14, 22);
-      doc.setFontSize(14); doc.setTextColor(71, 85, 105);
-      doc.text('Performance Report', 14, 30);
-      doc.setFontSize(10); doc.setTextColor(148, 163, 184);
-      doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 36);
-
-      const { overall, month, week, today: todayStats } = stats;
+      doc.setFontSize(11); doc.setTextColor(100);
+      doc.text(`Performance Report · Generated ${new Date().toLocaleString()}`, 14, 30);
       autoTable(doc, {
-        startY: 45,
-        head: [['Metric', 'All-Time', 'This Month', 'This Week', 'Today']],
+        startY: 38,
+        head: [['Metric', 'Today', 'This Month', 'All-Time']],
         body: [
-          ['Total Bookings', overall?.totalBookings || 0, month?.totalBookings || 0, week?.totalBookings || 0, todayStats?.totalBookings || 0],
-          ['Revenue', `Rs. ${fmt(overall?.revenue)}`, `Rs. ${fmt(month?.revenue)}`, `Rs. ${fmt(week?.revenue)}`, `Rs. ${fmt(todayStats?.revenue)}`],
-          ['Pending Cash', `Rs. ${fmt(overall?.pending)}`, `Rs. ${fmt(month?.pending)}`, `Rs. ${fmt(week?.pending)}`, `Rs. ${fmt(todayStats?.pending)}`],
-          ['Fully Paid', overall?.fullyPaid || 0, month?.fullyPaid || 0, week?.fullyPaid || 0, todayStats?.fullyPaid || 0],
+          ['Bookings', todayStats.totalBookings ?? 0, month.totalBookings ?? 0, overall.totalBookings ?? 0],
+          ['Revenue', `₹${fmt(todayStats.revenue)}`, `₹${fmt(month.revenue)}`, `₹${fmt(overall.revenue)}`],
+          ['Pending Cash', `₹${fmt(todayStats.pending)}`, `₹${fmt(month.pending)}`, `₹${fmt(overall.pending)}`],
+          ['Fully Paid', todayStats.fullyPaid ?? 0, month.fullyPaid ?? 0, overall.fullyPaid ?? 0],
         ],
-        theme: 'striped',
-        headStyles: { fillColor: [0, 212, 170], textColor: [255, 255, 255], fontStyle: 'bold' },
-        styles: { fontSize: 10, cellPadding: 8, textColor: [51, 65, 85] },
-        columnStyles: { 0: { fontStyle: 'bold' } },
-        alternateRowStyles: { fillColor: [248, 250, 252] },
+        headStyles: { fillColor: [5, 150, 105] },
+        styles: { fontSize: 10 },
       });
-      doc.save(`TurfReport_${selectedTurf.name.replace(/\s+/g, '_')}.pdf`);
-    } catch (error) {
-      alert('Failed to generate PDF. Please try again.');
-    } finally {
-      setDownloadingPdf(false);
-    }
+      doc.save(`TurfReport_${(selectedTurf.name || 'turf').replace(/\s+/g, '_')}.pdf`);
+    } catch (e) { alert('PDF failed. Try again.'); }
+    finally { setDownloadingPdf(false); }
   };
 
+  /* ── No turf guard ── */
   if (!selectedTurf) {
     return (
-      <div className={styles.emptyState}>
-        <h2>No turf found</h2>
-        <p>Contact admin to associate a turf with your account.</p>
+      <div style={{ textAlign: 'center', padding: '80px 20px' }}>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>⛳</div>
+        <h2 style={{ color: 'var(--text)', marginBottom: 8 }}>No Turf Found</h2>
+        <p style={{ color: 'var(--text-secondary)' }}>Contact admin to associate a turf with your account.</p>
       </div>
     );
   }
 
   if (loading) {
     return (
-      <div className={styles.loadingState}>
-        <div className="spinner" style={{ width: 40, height: 40 }} />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 400 }}>
+        <div className="spinner" style={{ width: 40, height: 40, borderWidth: 4 }} />
       </div>
     );
   }
 
-  const currentStats = stats?.[filter] || {};
+  /* Slots for schedule: take 8 slots for today, sorted by time */
+  const scheduleSlots = [...todaySlots].slice(0, 8);
+  const bookingSlots = [...todaySlots].slice(0, 6);
 
   return (
-    <div className="animate-fadeIn">
-      {/* Page header */}
-      <div className={styles.header}>
-        <div className={styles.headerLeft}>
-          <h1 className={styles.turfTitle}>{selectedTurf.name}</h1>
-          <p className={styles.dateText}>{today}</p>
-        </div>
-        <div className={styles.headerRight}>
-          <button 
-            className="btn btn-ghost btn-sm" 
-            onClick={() => setIsEditModalOpen(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, border: '1px solid var(--border)', marginRight: 16 }}
-          >
-            <Edit size={16} /> Edit Turf
-          </button>
-          <span className={styles.statusText} style={{ color: isActive ? '#10b981' : '#ef4444' }}>
-            {toggling ? 'Updating...' : isActive ? '● Online' : '○ Offline'}
-          </span>
-          <div
-            className={styles.toggle}
-            data-active={isActive}
-            onClick={handleToggleStatus}
-            style={{ cursor: toggling ? 'not-allowed' : 'pointer', opacity: toggling ? 0.7 : 1 }}
-          >
-            <div className={styles.toggleThumb} data-active={isActive} />
-          </div>
-        </div>
-      </div>
-
-      {/* Quick actions */}
-      <div className={styles.quickActions}>
-        <div className={styles.quickLinks}>
-          {[
-            { label: 'View Slots', href: '/slots' },
-            { label: 'All Bookings', href: '/bookings' },
-            { label: 'Scan QR', href: '/scanner' },
-          ].map(({ label, href }) => (
-            <a key={href} href={href} className="btn btn-ghost btn-sm"
-              style={{ border: '1px solid var(--primary)', color: 'var(--primary)' }}>
-              {label}
-            </a>
-          ))}
+    <>
+      {/* ── Top Header ── */}
+      <div className={styles.topBar}>
+        <div className={styles.topBarLeft}>
+          <h1 className={styles.welcome}>Welcome, {user?.name?.split(' ')[0] || 'Owner'}!</h1>
+          <p className={styles.dateStr}>{dateDisplay}</p>
         </div>
 
-        <div data-dropdown="download" className={styles.downloadWrap}>
-          <button
-            onClick={() => setDownloadMenuOpen(!downloadMenuOpen)}
-            disabled={downloadingPdf}
-            className={styles.exportBtn}
-          >
-            <Download size={16} />
-            {downloadingPdf ? 'Generating...' : 'Export'}
-            <ChevronDown size={13} style={{ transform: downloadMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
-          </button>
-
-          {downloadMenuOpen && !downloadingPdf && (
-            <div className={`animate-fadeIn ${styles.downloadMenu}`}>
-              <button className={styles.downloadMenuItem} onClick={() => { handleDownloadPDF(); setDownloadMenuOpen(false); }}>
-                <FileText size={15} color="#ef4444" /> Save as PDF
-              </button>
-              <button className={styles.downloadMenuItem} onClick={() => { handleDownloadCSV(); setDownloadMenuOpen(false); }}>
-                <Download size={15} color="#10b981" /> Save as CSV
-              </button>
+        <div className={styles.topBarRight}>
+          {/* Status toggle */}
+          <div className={styles.statusWrap}>
+            <span className={styles.statusDot} style={{ background: isActive ? '#10b981' : '#ef4444' }} />
+            <span className={styles.statusLabel} style={{ color: isActive ? '#10b981' : '#ef4444' }}>
+              {toggling ? '...' : isActive ? 'Online' : 'Offline'}
+            </span>
+            <div
+              className={styles.toggle}
+              data-active={isActive}
+              onClick={handleToggleStatus}
+              style={{ cursor: toggling ? 'not-allowed' : 'pointer', opacity: toggling ? 0.6 : 1 }}
+            >
+              <div className={styles.toggleThumb} data-active={isActive} />
             </div>
-          )}
+          </div>
+
+          {/* Refresh */}
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={handleRefresh}
+            disabled={refreshing}
+            title="Refresh data"
+          >
+            <RefreshCw size={14} style={{ animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }} />
+          </button>
+
+          {/* Edit Turf */}
+          <button className="btn btn-ghost btn-sm" onClick={() => setIsEditOpen(true)}>
+            <Edit size={14} /> Edit Turf
+          </button>
+
+          {/* Export */}
+          <div style={{ position: 'relative' }} data-dl="true">
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={() => setDownloadMenuOpen(p => !p)}
+              disabled={downloadingPdf}
+              data-dl="true"
+            >
+              <Download size={14} />
+              {downloadingPdf ? 'Generating...' : 'Export'}
+              <ChevronDown size={12} style={{ transform: downloadMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+            </button>
+            {downloadMenuOpen && !downloadingPdf && (
+              <div className={styles.exportMenu} data-dl="true">
+                <button className={styles.exportMenuItem} onClick={() => { handleDownloadPDF(); setDownloadMenuOpen(false); }}>
+                  <FileText size={14} color="#ef4444" /> Save as PDF
+                </button>
+                <button className={styles.exportMenuItem} onClick={() => { handleDownloadCSV(); setDownloadMenuOpen(false); }}>
+                  <Download size={14} color="#10b981" /> Save as CSV
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Filter tabs + Stats */}
-      <div className={styles.overviewSection}>
-        <div className={styles.overviewHeader}>
-          <h2 className={styles.overviewTitle}>Overview</h2>
-          <div className={styles.filterTabs}>
-            {FILTER_OPTIONS.map(opt => (
-              <button
-                key={opt.value}
-                onClick={() => setFilter(opt.value)}
-                className={`${styles.filterTab} ${filter === opt.value ? styles.filterTabActive : ''}`}
-              >
-                {opt.label}
-              </button>
-            ))}
+      {/* ── Stat Cards ── */}
+      <div className={styles.statsRow}>
+        <StatCard
+          icon="💰"
+          label="TOTAL REVENUE"
+          value={`₹${fmt(overall.revenue)}`}
+          sub={`This month: ₹${fmt(month.revenue)}`}
+          color="#059669"
+        />
+        <StatCard
+          icon="📋"
+          label="TOTAL BOOKINGS"
+          value={overall.totalBookings ?? 0}
+          sub={`Today: ${todayStats.totalBookings ?? 0}`}
+          color="#3b82f6"
+        />
+        <StatCard
+          icon="🏟️"
+          label="YOUR TURF"
+          value={selectedTurf.name}
+          sub={isActive ? '● Active' : '○ Offline'}
+          color="#8b5cf6"
+        />
+        <StatCard
+          icon="📊"
+          label="OCCUPANCY RATE"
+          value={`${occupancy}%`}
+          sub={`${bookedSlots}/${totalSlots} slots today`}
+          color="#f59e0b"
+        />
+      </div>
+
+      {/* ── Main Grid ── */}
+      <div className={styles.mainGrid}>
+        {/* LEFT COLUMN */}
+        <div className={styles.leftCol}>
+
+          {/* Booking Schedule */}
+          <div className={`card ${styles.scheduleCard}`}>
+            <div className="section-title">Booking Schedule</div>
+            <div className={styles.scheduleDateRow}>
+              <CalendarDays size={14} color="var(--text-muted)" />
+              <span>Today, {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+            </div>
+            <div className={styles.scheduleList}>
+              {slotsLoading ? (
+                <div style={{ textAlign: 'center', padding: 24 }}>
+                  <div className="spinner" style={{ margin: '0 auto' }} />
+                </div>
+              ) : scheduleSlots.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)', fontSize: 13 }}>
+                  No slots configured for today
+                </div>
+              ) : (
+                scheduleSlots.map((slot, i) => (
+                  <ScheduleItem key={`${slot.start}-${i}`} slot={slot} />
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Booking Slots */}
+          <div className={`card ${styles.slotListCard}`}>
+            <div className="section-title">Booking Slots</div>
+            <div className={styles.slotList}>
+              {slotsLoading ? (
+                <div style={{ textAlign: 'center', padding: 24 }}>
+                  <div className="spinner" style={{ margin: '0 auto' }} />
+                </div>
+              ) : bookingSlots.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)', fontSize: 13 }}>
+                  No slots found
+                </div>
+              ) : (
+                bookingSlots.map((slot, i) => (
+                  <SlotRow key={`${slot.start}-row-${i}`} slot={slot} />
+                ))
+              )}
+            </div>
           </div>
         </div>
 
-        <div className={styles.statsGrid}>
-          <StatCard icon={CalendarDays} label="Total Bookings" value={currentStats.totalBookings ?? 0} color="#3b82f6" />
-          <StatCard icon={IndianRupee} label="Revenue" value={`₹${fmt(currentStats.revenue)}`} color="#10b981" />
-          <StatCard icon={AlertCircle} label="Pending Cash" value={`₹${fmt(currentStats.pending)}`} color="#f59e0b" />
-          <StatCard icon={CheckCircle2} label="Confirmed" value={currentStats.confirmedBookings ?? 0} color="#10b981" />
-          <StatCard icon={Clock} label="Completed" value={currentStats.completedBookings ?? 0} color="#8b5cf6" />
-          <StatCard icon={Users} label="Hours Booked" value={currentStats.bookedSlotsCount ?? 0} color="#ec4899" />
+        {/* RIGHT COLUMN */}
+        <div className={styles.rightCol}>
+
+          {/* Booking Overview */}
+          <div className={`card ${styles.overviewCard}`}>
+            <div className="section-title">Booking Overview</div>
+            <div className={styles.overviewBody}>
+              <div className={styles.overviewStats}>
+                {[
+                  { label: 'Booked Slots', count: bookedSlots, pct: occupancy, color: '#059669' },
+                  { label: 'Remaining Slots', count: remainingSlots, pct: totalSlots > 0 ? Math.round((remainingSlots / totalSlots) * 100) : 0, color: '#f59e0b' },
+                  { label: 'Cancelled Slots', count: cancelledSlots, pct: totalSlots > 0 ? Math.round((cancelledSlots / totalSlots) * 100) : 0, color: '#ef4444' },
+                ].map(({ label, count, pct, color }) => (
+                  <div key={label} className={styles.overviewStat}>
+                    <div className={styles.overviewCount} style={{ color }}>{count}</div>
+                    <div className={styles.overviewLabel}>{label}</div>
+                    <div className={styles.overviewPct}>{pct}%</div>
+                  </div>
+                ))}
+              </div>
+              <div className={styles.donutWrap}>
+                {totalSlots > 0 ? (
+                  <>
+                    <OccupancyRing pct={occupancy} />
+                    <div className={styles.donutLegend}>
+                      {donutData.map(d => (
+                        <div key={d.name} className={styles.legendItem}>
+                          <span className="dot" style={{ background: d.color }} />
+                          <span style={{ fontSize: 11 }}>{d.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 13, padding: 20 }}>
+                    No slot data yet
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Recent Bookings */}
+          <div className={`card ${styles.recentCard}`}>
+            <div className="section-title">Recent Bookings</div>
+            <div className={styles.recentList}>
+              {recentBookings.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)', fontSize: 13 }}>
+                  No recent bookings
+                </div>
+              ) : (
+                recentBookings.map(b => (
+                  <RecentBookingRow key={b.id || b._id} booking={b} />
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Today Stats quick summary */}
+          <div className={`card ${styles.todayCard}`}>
+            <div className="section-title">Today's Summary</div>
+            <div className={styles.todayGrid}>
+              {[
+                { icon: <CalendarDays size={16} color="#3b82f6" />, label: 'Bookings', val: todayStats.totalBookings ?? 0, color: '#3b82f6' },
+                { icon: <IndianRupee size={16} color="#059669" />, label: 'Revenue', val: `₹${fmt(todayStats.revenue)}`, color: '#059669' },
+                { icon: <AlertCircle size={16} color="#f59e0b" />, label: 'Pending', val: `₹${fmt(todayStats.pending)}`, color: '#f59e0b' },
+                { icon: <CheckCircle2 size={16} color="#8b5cf6" />, label: 'Completed', val: todayStats.completedBookings ?? 0, color: '#8b5cf6' },
+              ].map(({ icon, label, val, color }) => (
+                <div key={label} className={styles.todayItem}>
+                  <div className={styles.todayIcon} style={{ background: `${color}15` }}>{icon}</div>
+                  <div>
+                    <div className={styles.todayVal} style={{ color }}>{val}</div>
+                    <div className={styles.todayLabel}>{label}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-
-        <PaymentBreakdown data={currentStats} label={FILTER_OPTIONS.find(o => o.value === filter)?.label} />
       </div>
-
-      {/* Charts */}
-      <GraphsSection stats={stats} />
 
       {/* Edit Modal */}
-      {isEditModalOpen && (
-        <EditTurfModal 
-          turfId={selectedTurf.id} 
-          onClose={() => setIsEditModalOpen(false)}
-          onSave={(updatedTurf) => {
-            setIsEditModalOpen(false);
-            // Optionally refresh the selectedTurf Name in context here
-            // But usually just a reload or letting next load get it is okay
-            window.location.reload();
-          }}
+      {isEditOpen && (
+        <EditTurfModal
+          turfId={selectedTurf.id}
+          onClose={() => setIsEditOpen(false)}
+          onSave={() => { setIsEditOpen(false); window.location.reload(); }}
         />
       )}
-    </div>
+    </>
   );
 }

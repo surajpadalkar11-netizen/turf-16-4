@@ -24,18 +24,19 @@ function SlotPicker({
     return slotStart >= peakHourStart && slotStart < peakHourEnd;
   };
 
-  // Group slots by Morning / Afternoon / Evening
+  // Group slots by Morning / Afternoon / Evening / Night
   const groupSlot = (slot) => {
     const hour = parseInt(slot.start.split(':')[0], 10);
-    if (hour < 12) return 'Morning';
-    if (hour < 17) return 'Afternoon';
-    return 'Evening';
+    if (hour >= 5 && hour < 12) return 'Morning';
+    if (hour >= 12 && hour < 17) return 'Afternoon';
+    if (hour >= 17 && hour < 21) return 'Evening';
+    return 'Night'; // 21:00+ or 00:00-04:59
   };
 
-  const groups = { Morning: [], Afternoon: [], Evening: [] };
+  const groups = { Morning: [], Afternoon: [], Evening: [], Night: [] };
   slots.forEach((slot) => groups[groupSlot(slot)].push(slot));
 
-  const groupIcons = { Morning: '🌅', Afternoon: '☀️', Evening: '🌙' };
+  const groupIcons = { Morning: '🌅', Afternoon: '☀️', Evening: '🌆', Night: '🌙' };
 
   // Count available, blocked, booked
   const totalSlots = slots.length;

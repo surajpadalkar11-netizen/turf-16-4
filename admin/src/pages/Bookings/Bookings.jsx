@@ -5,6 +5,14 @@ const formatPrice = (amount) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount);
 const formatDate = (date) =>
   new Date(date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+const formatTime = (t) => {
+  if (!t) return '';
+  const [h, m] = t.split(':');
+  let hours = parseInt(h, 10);
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12 || 12;
+  return `${hours}:${m} ${ampm}`;
+};
 
 function Bookings() {
   const [bookings, setBookings] = useState([]);
@@ -124,7 +132,7 @@ function Bookings() {
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                         {b.timeSlots?.map((s, i) => (
                           <span key={i} style={{ background: 'var(--color-primary-light)', color: 'var(--color-primary)', padding: '2px 8px', borderRadius: 10, fontSize: 'var(--font-xs)', fontWeight: 600 }}>
-                            {s.start}–{s.end}
+                            {formatTime(s.start)}–{formatTime(s.end)}
                           </span>
                         ))}
                       </div>

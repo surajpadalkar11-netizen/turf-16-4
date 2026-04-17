@@ -124,7 +124,7 @@
 }
 
 .tagActive {
-  background: rgba(0, 212, 170, 0.1) !important;
+  background: var(--primary-light) !important;
   border-color: var(--primary) !important;
   color: var(--primary-dark) !important;
 }
@@ -218,10 +218,10 @@
 }
 
 @media (max-width: 600px) {
-  .modal { padding: 24px 20px; border-radius: 16px 16px 0 0; max-height: 95vh; align-self: flex-end; margin-top: auto; }
-  .overlay { padding: 20px 0 0 0; align-items: flex-end; }
-  .grid { grid-template-columns: 1fr; gap: 16px; }
-  .footer { flex-direction: column-reverse; gap: 12px; }
+  .overlay { align-items: center; padding: 16px; }
+  .modal { padding: 20px 16px; border-radius: 14px; max-height: 92vh; }
+  .grid { grid-template-columns: 1fr; gap: 14px; }
+  .footer { flex-direction: column-reverse; gap: 10px; }
   .btnCancel, .btnSave { width: 100%; justify-content: center; }
 }
 

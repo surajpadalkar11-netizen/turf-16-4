@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import * as turfService from '../../services/turfService';
+import TimeSelect from '../../components/TimeSelect';
 import './Turfs.css';
 
 const SPORT_TYPES = ['cricket', 'football', 'badminton', 'tennis', 'basketball', 'volleyball', 'hockey', 'multi-sport'];
@@ -293,24 +294,24 @@ function Turfs() {
                   </div>
                   <div className="form-group">
                     <label>Price Per Hour (₹) *</label>
-                    <input type="number" className="input" value={form.pricePerHour} onChange={(e) => setForm({ ...form, pricePerHour: e.target.value })} required min={0} placeholder="1500" />
+                    <input type="number" className="input" value={form.pricePerHour} onChange={(e) => setForm({ ...form, pricePerHour: e.target.value })} required min={0} onWheel={e => e.target.blur()} placeholder="1500" />
                   </div>
                 </div>
 
                 <div className="form-row">
                   <div className="form-group">
                     <label>Peak Hour Start (e.g., 6 PM)</label>
-                    <input type="time" className="input" value={form.peakHourStart} onChange={(e) => setForm({ ...form, peakHourStart: e.target.value })} />
+                    <TimeSelect value={form.peakHourStart} onChange={val => setForm({ ...form, peakHourStart: val })} />
                   </div>
                   <div className="form-group">
                     <label>Peak Hour End</label>
-                    <input type="time" className="input" value={form.peakHourEnd} onChange={(e) => setForm({ ...form, peakHourEnd: e.target.value })} />
+                    <TimeSelect value={form.peakHourEnd} onChange={val => setForm({ ...form, peakHourEnd: val })} />
                   </div>
                 </div>
 
                 <div className="form-group">
                   <label>Peak Price Per Hour (₹) - Leave empty to use regular price</label>
-                  <input type="number" className="input" value={form.peakPricePerHour} onChange={(e) => setForm({ ...form, peakPricePerHour: e.target.value })} min={0} placeholder="2000" />
+                  <input type="number" className="input" value={form.peakPricePerHour} onChange={(e) => setForm({ ...form, peakPricePerHour: e.target.value })} min={0} onWheel={e => e.target.blur()} placeholder="2000" />
                   <small style={{ color: '#888', fontSize: '0.85rem' }}>Higher rate for peak hours (after 6 PM) due to electricity costs</small>
                 </div>
 
@@ -338,11 +339,11 @@ function Turfs() {
                 <div className="form-row">
                   <div className="form-group">
                     <label>Operating Hours — Open</label>
-                    <input type="time" className="input" value={form.operatingHours.open} onChange={(e) => setForm({ ...form, operatingHours: { ...form.operatingHours, open: e.target.value } })} />
+                    <TimeSelect value={form.operatingHours.open} onChange={val => setForm({ ...form, operatingHours: { ...form.operatingHours, open: val } })} />
                   </div>
                   <div className="form-group">
                     <label>Operating Hours — Close</label>
-                    <input type="time" className="input" value={form.operatingHours.close} onChange={(e) => setForm({ ...form, operatingHours: { ...form.operatingHours, close: e.target.value } })} />
+                    <TimeSelect value={form.operatingHours.close} onChange={val => setForm({ ...form, operatingHours: { ...form.operatingHours, close: val } })} />
                   </div>
                 </div>
 

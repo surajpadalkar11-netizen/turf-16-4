@@ -69,7 +69,15 @@ const sendRefundEmail = async ({ booking, turf, user }) => {
     return false;
   }
 
-  const slots = (booking.time_slots || []).map((s) => `${s.start} – ${s.end}`).join(', ');
+  const formatTime = (timeStr) => {
+    if (!timeStr) return '';
+    const [h, m] = timeStr.split(':');
+    const hour = parseInt(h);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const hr = hour % 12 || 12;
+    return `${hr}:${m} ${ampm}`;
+  };
+  const slots = (booking.time_slots || []).map((s) => `${formatTime(s.start)} – ${formatTime(s.end)}`).join(', ');
   const firstSlotStart = booking.time_slots?.[0]?.start || '00:00';
   const { percent, label, hoursUntilBooking } = getRefundDetails(booking.date, firstSlotStart);
   const refundAmount = Math.round((booking.total_amount * percent) / 100);

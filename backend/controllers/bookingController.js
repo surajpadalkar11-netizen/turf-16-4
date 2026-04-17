@@ -48,11 +48,20 @@ exports.createBooking = asyncHandler(async (req, res) => {
   const bookedSlots = new Set();
   (existing || []).forEach((b) => (b.time_slots || []).forEach((s) => bookedSlots.add(s.start)));
 
+  const formatTime = (timeStr) => {
+    if (!timeStr) return '';
+    const [h, m] = timeStr.split(':');
+    const hour = parseInt(h);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const hr = hour % 12 || 12;
+    return `${hr}:${m} ${ampm}`;
+  };
+
   const conflictSlot = timeSlots.find((s) => bookedSlots.has(s.start));
   if (conflictSlot) {
     return res.status(400).json({
       success: false,
-      message: `Slot ${conflictSlot.start} - ${conflictSlot.end} is already booked`,
+      message: `Slot ${formatTime(conflictSlot.start)} - ${formatTime(conflictSlot.end)} is already booked`,
     });
   }
 

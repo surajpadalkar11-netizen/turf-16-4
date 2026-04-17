@@ -152,7 +152,15 @@ exports.verifyPayment = asyncHandler(async (req, res) => {
   const bookingCode = `TRF-${booking.id.substring(0, 5).toUpperCase()}`;
   const dateOptions = { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' };
   const formattedDate = new Date(booking.date).toLocaleDateString('en-IN', dateOptions);
-  const timings = (booking.time_slots || []).map((t) => `${t.start} to ${t.end}`).join(', ');
+  const formatTime = (timeStr) => {
+    if (!timeStr) return '';
+    const [h, m] = timeStr.split(':');
+    const hour = parseInt(h);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const hr = hour % 12 || 12;
+    return `${hr}:${m} ${ampm}`;
+  };
+  const timings = (booking.time_slots || []).map((t) => `${formatTime(t.start)} to ${formatTime(t.end)}`).join(', ');
   const isPartial = paymentStatus === 'partially_paid';
   const { label: psLabel, color: psColor, bgColor: psBg } = getPaymentStatusLabel(
     paymentStatus, booking.total_amount, newAmountPaid
