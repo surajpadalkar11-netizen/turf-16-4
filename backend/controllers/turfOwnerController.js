@@ -289,9 +289,12 @@ exports.getTurfSlots = asyncHandler(async (req, res) => {
     (booking.time_slots || []).forEach((slot) => {
       const [h1, m1] = slot.start.split(':').map(Number);
       const [h2, m2] = slot.end.split(':').map(Number);
+      const startMins = h1 * 60 + m1;
+      let endMins = h2 * 60 + m2;
+      if (endMins <= startMins) endMins += 1440;
       bookedRanges.push({
-        startMins: h1 * 60 + m1,
-        endMins: h2 * 60 + m2,
+        startMins,
+        endMins,
         info: {
           bookingId: booking.id,
           bookingStatus: booking.status,
@@ -312,7 +315,8 @@ exports.getTurfSlots = asyncHandler(async (req, res) => {
     const [h1, m1] = slot.start.split(':').map(Number);
     const [h2, m2] = slot.end.split(':').map(Number);
     const slotStart = h1 * 60 + m1;
-    const slotEnd = h2 * 60 + m2;
+    let slotEnd = h2 * 60 + m2;
+    if (slotEnd <= slotStart) slotEnd += 1440;
 
     let overlappingInfo = null;
     for (const r of bookedRanges) {
@@ -458,7 +462,8 @@ exports.toggleSlotBlock = asyncHandler(async (req, res) => {
   const [rH1, rM1] = slot.start.split(':').map(Number);
   const [rH2, rM2] = slot.end.split(':').map(Number);
   const reqStart = rH1 * 60 + rM1;
-  const reqEnd   = rH2 * 60 + rM2;
+  let reqEnd   = rH2 * 60 + rM2;
+  if (reqEnd <= reqStart) reqEnd += 1440;
 
   // Fetch ALL non-cancelled bookings for this turf+date
   const { data: existingBookings } = await supabase
@@ -477,7 +482,8 @@ exports.toggleSlotBlock = asyncHandler(async (req, res) => {
       const [h1, m1] = s.start.split(':').map(Number);
       const [h2, m2] = s.end.split(':').map(Number);
       const bStart = h1 * 60 + m1;
-      const bEnd   = h2 * 60 + m2;
+      let bEnd   = h2 * 60 + m2;
+      if (bEnd <= bStart) bEnd += 1440;
 
       // Check overlap: two ranges overlap if one starts before the other ends
       const overlaps =

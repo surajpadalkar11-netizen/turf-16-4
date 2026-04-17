@@ -14,15 +14,22 @@ const generateTimeSlots = (openTime, closeTime, intervalMinutes = 60) => {
   const slots = [];
   const [openH, openM] = openTime.split(':').map(Number);
   const [closeH, closeM] = closeTime.split(':').map(Number);
-  const closeTotalMin = closeH * 60 + closeM;
+  let closeTotalMin = closeH * 60 + closeM;
   let currentTotalMin = openH * 60 + openM;
 
+  if (closeTotalMin <= currentTotalMin) {
+    closeTotalMin += 1440;
+  }
+
   while (currentTotalMin + intervalMinutes <= closeTotalMin) {
-    const startH = String(Math.floor(currentTotalMin / 60)).padStart(2, '0');
-    const startM = String(currentTotalMin % 60).padStart(2, '0');
+    const currentMinMod = currentTotalMin % 1440;
+    const startH = String(Math.floor(currentMinMod / 60)).padStart(2, '0');
+    const startM = String(currentMinMod % 60).padStart(2, '0');
+    
     const endTotalMin = currentTotalMin + intervalMinutes;
-    const endH = String(Math.floor(endTotalMin / 60)).padStart(2, '0');
-    const endM = String(endTotalMin % 60).padStart(2, '0');
+    const endMinMod = endTotalMin % 1440;
+    const endH = String(Math.floor(endMinMod / 60)).padStart(2, '0');
+    const endM = String(endMinMod % 60).padStart(2, '0');
 
     slots.push({
       start: `${startH}:${startM}`,

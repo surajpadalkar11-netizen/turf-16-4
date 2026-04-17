@@ -130,7 +130,10 @@ exports.getAvailableSlots = asyncHandler(async (req, res) => {
     (b.time_slots || []).forEach((s) => {
       const [h1, m1] = s.start.split(':').map(Number);
       const [h2, m2] = s.end.split(':').map(Number);
-      bookedRanges.push({ startMins: h1 * 60 + m1, endMins: h2 * 60 + m2, blocked: isAdminBlocked });
+      const startMins = h1 * 60 + m1;
+      let endMins = h2 * 60 + m2;
+      if (endMins <= startMins) endMins += 1440;
+      bookedRanges.push({ startMins, endMins, blocked: isAdminBlocked });
     });
   });
 
@@ -138,7 +141,8 @@ exports.getAvailableSlots = asyncHandler(async (req, res) => {
     const [h1, m1] = slot.start.split(':').map(Number);
     const [h2, m2] = slot.end.split(':').map(Number);
     const slotStart = h1 * 60 + m1;
-    const slotEnd = h2 * 60 + m2;
+    let slotEnd = h2 * 60 + m2;
+    if (slotEnd <= slotStart) slotEnd += 1440;
 
     let available = true;
     let blocked = false;
