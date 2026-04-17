@@ -337,9 +337,11 @@ export default function Dashboard() {
     );
   }
 
-  /* Slots for schedule: take 8 slots for today, sorted by time */
-  const scheduleSlots = [...todaySlots].slice(0, 8);
-  const bookingSlots = [...todaySlots].slice(0, 6);
+  /* Slots for schedule: specifically booked slots for today */
+  const scheduleSlots = todaySlots.filter(s => ['booked', 'pending', 'completed'].includes(s.slotStatus)).slice(0, 8);
+  
+  /* Slots for booking slots: specifically available ones */
+  const bookingSlots = todaySlots.filter(s => s.slotStatus === 'available').slice(0, 8);
 
   return (
     <>
@@ -459,7 +461,7 @@ export default function Dashboard() {
                 </div>
               ) : scheduleSlots.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)', fontSize: 13 }}>
-                  No slots configured for today
+                  No bookings scheduled for today
                 </div>
               ) : (
                 scheduleSlots.map((slot, i) => (
@@ -479,7 +481,7 @@ export default function Dashboard() {
                 </div>
               ) : bookingSlots.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-muted)', fontSize: 13 }}>
-                  No slots found
+                  No available slots
                 </div>
               ) : (
                 bookingSlots.map((slot, i) => (
