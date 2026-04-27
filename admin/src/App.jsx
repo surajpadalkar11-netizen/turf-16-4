@@ -7,6 +7,8 @@ import Turfs from './pages/Turfs/Turfs';
 import Bookings from './pages/Bookings/Bookings';
 import Users from './pages/Users/Users';
 import Reviews from './pages/Reviews/Reviews';
+import Settings from './pages/Settings/Settings';
+import Payouts from './pages/Payouts/Payouts';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -31,6 +33,8 @@ function App() {
         <Route path="/bookings" element={<Bookings />} />
         <Route path="/users" element={<Users />} />
         <Route path="/reviews" element={<Reviews />} />
+        <Route path="/payouts" element={<Payouts />} />
+        <Route path="/settings" element={<Settings />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

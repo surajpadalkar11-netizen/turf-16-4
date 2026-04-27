@@ -1,0 +1,458 @@
+/* ═══════════════════════════════════════════════════
+   Payouts — Premium Mobile-First Design
+═══════════════════════════════════════════════════ */
+
+/* ── Page Header ──────────────────────────────────── */
+.po-page {
+  max-width: 1300px;
+}
+
+.po-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.po-header h1 {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--color-text);
+  letter-spacing: -0.03em;
+  margin: 0 0 4px;
+}
+
+.po-header-sub {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+/* ── Stats Cards ──────────────────────────────────── */
+.po-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.po-stat-card {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.po-stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.07);
+}
+
+.po-stat-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--color-text-muted);
+}
+
+.po-stat-value {
+  font-size: 1.75rem;
+  font-weight: 900;
+  color: var(--color-text);
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.po-stat-value.pending { color: #f59e0b; }
+.po-stat-value.completed { color: #059669; }
+
+.po-stat-sub {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+/* ── Filter Bar ───────────────────────────────────── */
+.po-filter-bar {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.po-filter-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.po-filter-select {
+  padding: 9px 32px 9px 12px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 9px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text);
+  background: var(--color-surface);
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+
+.po-filter-select:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+
+/* ── Table Card ───────────────────────────────────── */
+.po-table-card {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+
+/* ── Table (desktop) ──────────────────────────────── */
+.po-table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.po-table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+}
+
+.po-table thead th {
+  background: var(--color-bg-secondary);
+  padding: 13px 18px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--color-text-muted);
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.po-table tbody tr {
+  border-bottom: 1px solid var(--color-border);
+  transition: background 0.15s;
+}
+
+.po-table tbody tr:last-child { border-bottom: none; }
+.po-table tbody tr:hover { background: var(--color-bg-secondary); }
+
+.po-table tbody td {
+  padding: 16px 18px;
+  vertical-align: middle;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+/* ── Cell styles ──────────────────────────────────── */
+.po-booking-id {
+  font-family: monospace;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  padding: 4px 8px;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+.po-turf-name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0 0 2px;
+}
+
+.po-turf-email {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  margin: 0 0 3px;
+}
+
+.po-turf-razorpay {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  color: #6366f1;
+  font-weight: 600;
+  background: rgba(99,102,241,0.08);
+  padding: 2px 8px;
+  border-radius: 99px;
+}
+
+.po-turf-no-rzp {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  color: #f59e0b;
+  font-weight: 600;
+  background: rgba(245,158,11,0.08);
+  padding: 2px 8px;
+  border-radius: 99px;
+}
+
+.po-amount {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #059669;
+  font-variant-numeric: tabular-nums;
+}
+
+.po-date {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.po-payout-ref {
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  font-family: monospace;
+}
+
+/* Badges */
+.po-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.po-badge-pending {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.po-badge-completed {
+  background: #d1fae5;
+  color: #059669;
+}
+
+/* Pay button */
+.po-pay-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #059669, #047857);
+  color: #fff;
+  border: none;
+  border-radius: 9px;
+  padding: 9px 18px;
+  font-size: 0.825rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+}
+
+.po-pay-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(5,150,105,0.35);
+}
+
+.po-pay-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  background: #94a3b8;
+}
+
+.po-pay-btn.processing {
+  background: #64748b;
+}
+
+/* ── Empty State ──────────────────────────────────── */
+.po-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 24px;
+  text-align: center;
+}
+
+.po-empty-icon {
+  width: 72px;
+  height: 72px;
+  background: var(--color-surface);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  margin-bottom: 18px;
+}
+
+.po-empty-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0 0 6px;
+}
+
+.po-empty-sub {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  margin: 0;
+  max-width: 280px;
+}
+
+/* ── Pagination ───────────────────────────────────── */
+.po-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  padding: 20px;
+}
+
+.po-page-btn {
+  padding: 8px 18px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.po-page-btn:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.po-page-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.po-page-info {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+/* ── Loading ──────────────────────────────────────── */
+.po-loading {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ════ MOBILE CARDS (≤ 700px) ══════════════════════ */
+@media (max-width: 700px) {
+  .po-stats-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .po-stat-card {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 18px;
+  }
+
+  .po-stat-value {
+    font-size: 1.4rem;
+  }
+
+  /* Hide native table, show card layout */
+  .po-table {
+    display: block;
+    min-width: unset;
+  }
+
+  .po-table thead {
+    display: none;
+  }
+
+  .po-table tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .po-table tbody tr {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto auto;
+    gap: 10px;
+    padding: 16px;
+    border-bottom: 6px solid var(--color-bg-secondary);
+    align-items: start;
+  }
+
+  .po-table tbody tr:last-child {
+    border-bottom: none;
+  }
+
+  .po-table tbody td {
+    padding: 0;
+    font-size: 0.85rem;
+  }
+
+  /* Span turf info full width */
+  .po-table tbody td:nth-child(2) {
+    grid-column: 1 / -1;
+  }
+
+  /* Action button full width */
+  .po-table tbody td:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .po-pay-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 12px;
+  }
+}
+
+@media (max-width: 540px) {
+  .po-filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .po-filter-select {
+    width: 100%;
+  }
+}

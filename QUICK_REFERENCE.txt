@@ -1,0 +1,189 @@
+# QUICK REFERENCE - WALLET & PAYOUT SYSTEM
+
+## 🚀 Quick Start Commands
+
+### Start All Services
+```bash
+# Backend
+cd backend && npm start
+
+# Frontend (Users)
+cd frontend && npm run dev
+
+# Admin Panel (YOU)
+cd admin && npm run dev
+
+# Turf-Admin Panel (Turf Owners)
+cd turf-admin && npm run dev
+```
+
+## 📊 Database Migrations (Run Once)
+
+In Supabase SQL Editor, run these files in order:
+1. `backend/migrations/add_wallet.sql`
+2. `backend/migrations/add_admin_settings.sql`
+3. `backend/migrations/add_payout_tracking.sql`
+
+## 🔑 Configuration Needed
+
+### 1. Backend .env
+```env
+GMAIL_USER=your-email@gmail.com
+GMAIL_PASS=your-16-char-app-password
+```
+
+### 2. Admin Panel Settings (via UI)
+- Login to admin panel
+- Go to Settings
+- Enter Razorpay Key ID
+- Enter Razorpay Key Secret
+- Save
+
+### 3. Turf Razorpay Accounts
+- Each turf needs razorpay_key_id configured
+- This is where payouts will be sent
+
+## 💰 Money Flow Summary
+
+```
+USER ADDS MONEY:
+User → Razorpay Payment → Admin's Razorpay Account → User Wallet Balance
+
+USER BOOKS WITH WALLET:
+User Wallet → Booking Payment → Database (payout_status: pending)
+
+ADMIN PROCESSES PAYOUT:
+Admin Panel → Transfer → Turf Owner's Razorpay Account → Completed
+```
+
+## 🎯 Key Features
+
+### Admin Panel (http://localhost:5173 or your admin URL)
+- **Settings**: Configure your Razorpay keys
+- **Payouts**: Process payouts to turf owners
+- **Dashboard**: View all platform statistics
+- **Turfs**: Manage all turfs
+- **Bookings**: View all bookings
+- **Users**: Manage users
+- **Reviews**: Manage reviews
+
+### Turf-Admin Panel (http://localhost:5175)
+- **Dashboard**: View their turf stats
+- **Bookings**: View their bookings
+- **Slots**: Manage time slots
+- **Scanner**: Scan QR codes
+- **Supervisors**: Manage supervisors
+- ❌ NO Settings (moved to admin)
+- ❌ NO Payouts (moved to admin)
+
+### Frontend (http://localhost:5173)
+- **Wallet**: Add money, view transactions
+- **Browse**: Find turfs
+- **Book**: Book turfs with wallet
+- **Dashboard**: View bookings
+
+## ⚠️ Important Validations
+
+### Payout Page Shows:
+- ✅ Turf name
+- ✅ Owner email
+- ✅ Owner's Razorpay Key ID (🔑 rzp_live_xxxxx)
+- ⚠️ Warning if no Razorpay account
+- 🔒 Button disabled if no Razorpay account
+
+### Cannot Process Payout If:
+- Turf owner has no Razorpay account
+- Payout already completed
+- No wallet payment exists
+- Admin Razorpay not configured
+
+## 📧 Email Notifications Sent
+
+1. **User adds money to wallet** → User receives confirmation
+2. **User books with wallet** → User receives booking confirmation
+3. **User books with wallet** → Turf owner receives booking notification
+4. **Admin credits free points** → User receives gift notification
+
+## 🔍 Testing Checklist
+
+- [ ] Run database migrations
+- [ ] Configure admin Razorpay keys
+- [ ] Ensure turf has razorpay_key_id
+- [ ] User adds money to wallet
+- [ ] User books turf with wallet
+- [ ] Admin sees booking in Payouts (pending)
+- [ ] Admin sees turf owner's Razorpay account
+- [ ] Admin clicks "Pay Now"
+- [ ] Confirmation shows all details
+- [ ] Payout processes successfully
+- [ ] Status changes to "Completed"
+- [ ] Transfer ID displayed
+
+## 🐛 Troubleshooting
+
+### Razorpay checkout not opening?
+- Check browser console for errors
+- Verify admin Razorpay keys are saved
+- Check browser popup blocker
+
+### Email not sending?
+- Verify GMAIL_USER and GMAIL_PASS in .env
+- Use Gmail App Password (not regular password)
+- Check backend logs
+
+### Payout button disabled?
+- Check if turf has razorpay_key_id
+- Look for "⚠️ No Razorpay account" warning
+- Turf owner must configure their Razorpay account
+
+### "Admin Razorpay not configured" error?
+- Go to Admin Panel → Settings
+- Enter Razorpay Key ID and Secret
+- Save settings
+
+## 📝 Database Fields Reference
+
+### bookings table (payout tracking):
+- `wallet_amount_used` - Amount paid via wallet
+- `payout_status` - pending/completed/failed
+- `payout_amount` - Amount paid to turf owner
+- `payout_date` - When payout was processed
+- `razorpay_payout_id` - Transfer ID
+- `payout_account` - Turf owner's razorpay_key_id
+
+### turfs table:
+- `razorpay_key_id` - Turf owner's Razorpay account
+- `razorpay_key_secret` - Turf owner's Razorpay secret
+
+### admin_settings table:
+- `razorpay_key_id` - Admin's Razorpay Key ID
+- `razorpay_key_secret` - Admin's Razorpay Secret
+
+## 🎨 UI Features
+
+### Admin Payouts Page:
+- Statistics cards (pending/completed amounts)
+- Filter by status (all/pending/completed)
+- Shows turf owner's Razorpay account
+- Warning if no Razorpay account
+- Disabled button if cannot pay
+- Transfer ID after completion
+- Pagination for large lists
+
+### User Wallet Page:
+- White theme (clean design)
+- Gradient balance card
+- Quick amount buttons
+- Transaction history with filters
+- Fully responsive
+
+## 📞 Support Files
+
+- `PAYOUT_SYSTEM_EXPLAINED.txt` - Detailed flow explanation
+- `FINAL_CHANGES_SUMMARY.txt` - All changes made
+- `DATABASE_MIGRATIONS.md` - SQL migration guide
+- `TESTING_GUIDE.md` - Complete testing checklist
+
+---
+
+Everything is ready! Test and push to GitHub when satisfied.

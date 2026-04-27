@@ -11,8 +11,7 @@ const Slots = lazy(() => import('./pages/Slots'));
 const Scanner = lazy(() => import('./pages/Scanner'));
 const Supervisors = lazy(() => import('./pages/Supervisors'));
 const SupervisorDashboard = lazy(() => import('./pages/SupervisorDashboard'));
-const Settings = lazy(() => import('./pages/Settings'));
-const Payouts = lazy(() => import('./pages/Payouts'));
+const Earnings = lazy(() => import('./pages/Earnings'));
 
 function PageLoader() {
   return (
@@ -61,10 +60,9 @@ function AppRoutes() {
           {/* ── Owner-only pages ── */}
           <Route path="/bookings" element={<OwnerOnlyRoute><Bookings /></OwnerOnlyRoute>} />
           <Route path="/slots" element={<OwnerOnlyRoute><Slots /></OwnerOnlyRoute>} />
+          <Route path="/earnings" element={<OwnerOnlyRoute><Earnings /></OwnerOnlyRoute>} />
           <Route path="/scanner" element={<Scanner />} />
           <Route path="/supervisors" element={<OwnerOnlyRoute><Supervisors /></OwnerOnlyRoute>} />
-          <Route path="/settings" element={<OwnerOnlyRoute><Settings /></OwnerOnlyRoute>} />
-          <Route path="/payouts" element={<OwnerOnlyRoute><Payouts /></OwnerOnlyRoute>} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

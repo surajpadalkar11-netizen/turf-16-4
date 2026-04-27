@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
-import api from '../services/api';
-import styles from './Settings.module.css';
+import api from '../../services/api';
+import './Settings.css';
 
 export default function Settings() {
-  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [razorpayKeyId, setRazorpayKeyId] = useState('');
@@ -48,31 +46,31 @@ export default function Settings() {
 
   if (loading) {
     return (
-      <div className={styles.page}>
-        <div className={styles.loading}>Loading settings...</div>
+      <div className="page">
+        <div className="loading">Loading settings...</div>
       </div>
     );
   }
 
   return (
-    <div className={styles.page}>
-      <div className={styles.header}>
-        <h1 className={styles.title}>Admin Settings</h1>
-        <p className={styles.subtitle}>Configure payment gateway and system settings</p>
+    <div className="page">
+      <div className="page-header">
+        <h1 className="page-title">Platform Settings</h1>
+        <p className="page-subtitle">Configure payment gateway and system settings</p>
       </div>
 
-      <div className={styles.container}>
-        <div className={styles.card}>
-          <div className={styles.cardHeader}>
-            <h2 className={styles.cardTitle}>💳 Razorpay Configuration</h2>
-            <p className={styles.cardDesc}>
-              Configure Razorpay keys for wallet top-ups and payouts. These keys are used for all wallet transactions.
+      <div className="settings-container">
+        <div className="settings-card">
+          <div className="card-header">
+            <h2 className="card-title">💳 Razorpay Configuration</h2>
+            <p className="card-desc">
+              Configure Razorpay keys for wallet top-ups and payouts. These keys are used for all wallet transactions across the platform.
             </p>
           </div>
 
-          <form onSubmit={handleSave} className={styles.form}>
-            <div className={styles.formGroup}>
-              <label htmlFor="razorpay-key-id" className={styles.label}>
+          <form onSubmit={handleSave} className="settings-form">
+            <div className="form-group">
+              <label htmlFor="razorpay-key-id" className="form-label">
                 Razorpay Key ID
               </label>
               <input
@@ -81,13 +79,13 @@ export default function Settings() {
                 value={razorpayKeyId}
                 onChange={(e) => setRazorpayKeyId(e.target.value)}
                 placeholder="rzp_live_xxxxxxxxxx"
-                className={styles.input}
+                className="form-input"
               />
-              <span className={styles.hint}>Your Razorpay API Key ID (starts with rzp_)</span>
+              <span className="form-hint">Your Razorpay API Key ID (starts with rzp_)</span>
             </div>
 
-            <div className={styles.formGroup}>
-              <label htmlFor="razorpay-key-secret" className={styles.label}>
+            <div className="form-group">
+              <label htmlFor="razorpay-key-secret" className="form-label">
                 Razorpay Key Secret
               </label>
               <input
@@ -96,35 +94,35 @@ export default function Settings() {
                 value={razorpayKeySecret}
                 onChange={(e) => setRazorpayKeySecret(e.target.value)}
                 placeholder="Enter new secret to update"
-                className={styles.input}
+                className="form-input"
               />
-              <span className={styles.hint}>
+              <span className="form-hint">
                 Leave blank to keep existing secret. Only enter if you want to update it.
               </span>
             </div>
 
             {msg && (
-              <div className={`${styles.msg} ${msg.type === 'success' ? styles.msgSuccess : styles.msgError}`}>
+              <div className={`msg ${msg.type === 'success' ? 'msg-success' : 'msg-error'}`}>
                 {msg.type === 'success' ? '✅' : '❌'} {msg.text}
               </div>
             )}
 
-            <button type="submit" className={styles.saveBtn} disabled={saving}>
+            <button type="submit" className="btn-primary" disabled={saving}>
               {saving ? 'Saving...' : 'Save Settings'}
             </button>
           </form>
         </div>
 
-        <div className={styles.infoCard}>
-          <h3 className={styles.infoTitle}>ℹ️ How to Get Razorpay Keys</h3>
-          <ol className={styles.infoList}>
+        <div className="info-card">
+          <h3 className="info-title">ℹ️ How to Get Razorpay Keys</h3>
+          <ol className="info-list">
             <li>Log in to your Razorpay Dashboard</li>
             <li>Go to Settings → API Keys</li>
             <li>Generate keys for Live or Test mode</li>
             <li>Copy the Key ID and Key Secret</li>
             <li>Paste them here and save</li>
           </ol>
-          <p className={styles.infoNote}>
+          <p className="info-note">
             <strong>Note:</strong> Use Test mode keys for testing and Live mode keys for production.
           </p>
         </div>

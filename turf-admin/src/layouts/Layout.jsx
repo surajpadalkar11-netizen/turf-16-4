@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard, CalendarDays, Grid3X3, ScanLine,
   LogOut, ChevronDown, Menu, X, Building2, Users,
-  ShieldCheck, Settings as SettingsIcon, Wallet,
+  ShieldCheck, Settings as SettingsIcon, Wallet, DollarSign,
 } from 'lucide-react';
 import styles from './Layout.module.css';
 
@@ -12,10 +12,9 @@ const OWNER_NAV = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/bookings', label: 'Bookings', icon: CalendarDays },
   { to: '/slots', label: 'Slot Manager', icon: Grid3X3 },
+  { to: '/earnings', label: 'Earnings', icon: DollarSign },
   { to: '/scanner', label: 'QR Scanner', icon: ScanLine },
   { to: '/supervisors', label: 'Supervisors', icon: Users },
-  { to: '/payouts', label: 'Payouts', icon: Wallet },
-  { to: '/settings', label: 'Settings', icon: SettingsIcon },
 ];
 
 const SUPERVISOR_NAV = [

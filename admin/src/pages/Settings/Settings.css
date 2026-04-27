@@ -11,24 +11,24 @@
   font-size: 16px;
 }
 
-.header {
+.page-header {
   margin-bottom: 32px;
 }
 
-.title {
+.page-title {
   font-size: 28px;
   font-weight: 800;
   color: #0f172a;
   margin: 0 0 8px;
 }
 
-.subtitle {
+.page-subtitle {
   color: #64748b;
   font-size: 14px;
   margin: 0;
 }
 
-.container {
+.settings-container {
   display: grid;
   grid-template-columns: 1fr 380px;
   gap: 24px;
@@ -36,12 +36,12 @@
 }
 
 @media (max-width: 1024px) {
-  .container {
+  .settings-container {
     grid-template-columns: 1fr;
   }
 }
 
-.card {
+.settings-card {
   background: #fff;
   border: 1px solid #e2e8f0;
   border-radius: 16px;
@@ -49,45 +49,45 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-.cardHeader {
+.card-header {
   margin-bottom: 28px;
   padding-bottom: 20px;
   border-bottom: 1px solid #f1f5f9;
 }
 
-.cardTitle {
+.card-title {
   font-size: 20px;
   font-weight: 700;
   color: #0f172a;
   margin: 0 0 8px;
 }
 
-.cardDesc {
+.card-desc {
   color: #64748b;
   font-size: 14px;
   margin: 0;
   line-height: 1.6;
 }
 
-.form {
+.settings-form {
   display: flex;
   flex-direction: column;
   gap: 24px;
 }
 
-.formGroup {
+.form-group {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.label {
+.form-label {
   font-size: 14px;
   font-weight: 600;
   color: #334155;
 }
 
-.input {
+.form-input {
   padding: 12px 16px;
   border: 1.5px solid #e2e8f0;
   border-radius: 10px;
@@ -98,17 +98,17 @@
   font-family: monospace;
 }
 
-.input:focus {
+.form-input:focus {
   outline: none;
   border-color: #00d4aa;
   background: #fff;
 }
 
-.input::placeholder {
+.form-input::placeholder {
   color: #cbd5e1;
 }
 
-.hint {
+.form-hint {
   font-size: 12px;
   color: #94a3b8;
 }
@@ -120,19 +120,19 @@
   font-weight: 600;
 }
 
-.msgSuccess {
+.msg-success {
   background: #d1fae5;
   border: 1px solid #6ee7b7;
   color: #059669;
 }
 
-.msgError {
+.msg-error {
   background: #fee2e2;
   border: 1px solid #fca5a5;
   color: #dc2626;
 }
 
-.saveBtn {
+.btn-primary {
   background: linear-gradient(135deg, #00d4aa, #059669);
   color: #fff;
   border: none;
@@ -145,32 +145,32 @@
   box-shadow: 0 4px 14px rgba(0, 212, 170, 0.3);
 }
 
-.saveBtn:hover:not(:disabled) {
+.btn-primary:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(0, 212, 170, 0.4);
 }
 
-.saveBtn:disabled {
+.btn-primary:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
 }
 
-.infoCard {
+.info-card {
   background: #eff6ff;
   border: 1px solid #bfdbfe;
   border-radius: 16px;
   padding: 24px;
 }
 
-.infoTitle {
+.info-title {
   font-size: 16px;
   font-weight: 700;
   color: #1e40af;
   margin: 0 0 16px;
 }
 
-.infoList {
+.info-list {
   margin: 0 0 16px;
   padding-left: 20px;
   color: #475569;
@@ -178,11 +178,11 @@
   line-height: 1.8;
 }
 
-.infoList li {
+.info-list li {
   margin-bottom: 8px;
 }
 
-.infoNote {
+.info-note {
   background: #fff;
   border: 1px solid #dbeafe;
   border-radius: 8px;
@@ -197,7 +197,7 @@
     padding: 20px 16px;
   }
 
-  .card {
+  .settings-card {
     padding: 24px 20px;
   }
 }

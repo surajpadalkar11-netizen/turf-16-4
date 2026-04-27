@@ -4,93 +4,182 @@ const { asyncHandler } = require('../utils/helpers');
 // @desc    Get admin dashboard stats
 // @route   GET /api/admin/stats
 exports.getStats = asyncHandler(async (req, res) => {
+  const { range, startDate, endDate } = req.query;
+
+  let start = null;
+  let end   = null;
+
+  if (range === 'today') {
+    start = new Date(); start.setHours(0, 0, 0, 0);
+    end   = new Date(); end.setHours(23, 59, 59, 999);
+  } else if (range === 'month') {
+    start = new Date(); start.setDate(1); start.setHours(0, 0, 0, 0);
+    end   = new Date(); end.setMonth(end.getMonth() + 1); end.setDate(0); end.setHours(23, 59, 59, 999);
+  } else if (range === 'custom' && startDate && endDate) {
+    start = new Date(startDate); start.setHours(0, 0, 0, 0);
+    end   = new Date(endDate);   end.setHours(23, 59, 59, 999);
+  }
+
+  const df = (query, field = 'created_at') =>
+    start && end ? query.gte(field, start.toISOString()).lte(field, end.toISOString()) : query;
+
+  // ── Core counts ───────────────────────────────────────────────────────────
   const [
     { count: totalUsers },
     { count: totalTurfs },
     { count: totalBookings },
     { count: totalReviews },
   ] = await Promise.all([
-    supabase.from('users').select('*', { count: 'exact', head: true }),
-    supabase.from('turfs').select('*', { count: 'exact', head: true }),
-    supabase.from('bookings').select('*', { count: 'exact', head: true }),
-    supabase.from('reviews').select('*', { count: 'exact', head: true }),
+    df(supabase.from('users').select('*',    { count: 'exact', head: true })),
+    df(supabase.from('turfs').select('*',    { count: 'exact', head: true })),
+    df(supabase.from('bookings').select('*', { count: 'exact', head: true })),
+    df(supabase.from('reviews').select('*',  { count: 'exact', head: true })),
   ]);
 
-  // Total revenue from confirmed/completed bookings
-  const { data: revenueRows } = await supabase
-    .from('bookings')
-    .select('total_amount')
-    .in('status', ['confirmed', 'completed']);
+  // ── Total booking revenue ─────────────────────────────────────────────────
+  const { data: revenueRows } = await df(
+    supabase.from('bookings').select('total_amount').in('status', ['confirmed', 'completed'])
+  );
+  const totalRevenue = (revenueRows || []).reduce((s, b) => s + Number(b.total_amount), 0);
 
-  const totalRevenue = (revenueRows || []).reduce((sum, b) => sum + Number(b.total_amount), 0);
+  // ══ WALLET FINANCIAL FLOW ═════════════════════════════════════════════════
+  //
+  //  FORMULA (accurate):
+  //  walletLoadedByUsers  = SUM of all valid credit txns (excludes pending top-ups)
+  //  totalWalletSpent     = SUM(bookings.wallet_amount_used)
+  //  totalPaidOutToOwners = SUM(payout_amount) where payout_status='completed'
+  //  adminWalletBalance   = totalWalletSpent - totalPaidOutToOwners
+  //    (money admin collected from users' bookings, but hasn't paid to turf owners yet)
+  //  currentUserBalances  = SUM(users.wallet_balance) — money still in users' wallets
+  // ═════════════════════════════════════════════════════════════════════════
 
-  // Bookings by status
-  const { data: allStatuses } = await supabase.from('bookings').select('status');
+  // 1. All valid wallet credit transactions (exclude pending top-ups)
+  //    Pending top-ups have description 'Wallet top-up (pending)' and are deleted on verify.
+  //    We exclude any with balance_after=0 and description containing 'pending' just in case.
+  const { data: creditTxns } = await df(
+    supabase
+      .from('wallet_transactions')
+      .select('amount, reference, description')
+      .eq('type', 'credit')
+      .neq('description', 'Wallet top-up (pending)')
+  );
+
+  // All credits (real top-ups + manual + admin free points)
+  const walletLoadedByUsers = (creditTxns || [])
+    .filter(t => !t.reference?.startsWith('admin_free_')) // exclude admin bonus
+    .reduce((s, t) => s + Number(t.amount), 0);
+
+  // Admin-given free/bonus points (not real money from users)
+  const walletFreeCredits = (creditTxns || [])
+    .filter(t => t.reference?.startsWith('admin_free_'))
+    .reduce((s, t) => s + Number(t.amount), 0);
+
+  // 2. Total wallet amount spent on bookings (wallet_amount_used)
+  const { data: walletSpentRows } = await df(
+    supabase.from('bookings').select('wallet_amount_used').gt('wallet_amount_used', 0)
+  );
+  const totalWalletSpentOnBookings = (walletSpentRows || [])
+    .reduce((s, b) => s + Number(b.wallet_amount_used || 0), 0);
+
+  // 3. Already paid out to turf owners
+  const { data: paidOutRows } = await df(
+    supabase.from('bookings').select('payout_amount').eq('payout_status', 'completed')
+  );
+  const totalPaidOutToOwners = (paidOutRows || [])
+    .reduce((s, b) => s + Number(b.payout_amount || 0), 0);
+
+  // 4. Pending: wallet spent on bookings but NOT yet paid to turf owners
+  const { data: pendingRows } = await df(
+    supabase.from('bookings').select('wallet_amount_used')
+      .gt('wallet_amount_used', 0)
+      .or('payout_status.is.null,payout_status.eq.pending')
+  );
+  const totalPendingPayouts = (pendingRows || [])
+    .reduce((s, b) => s + Number(b.wallet_amount_used || 0), 0);
+
+  // 5. Current total balance still sitting in users' wallets (snapshot)
+  const { data: userWallets } = await supabase.from('users').select('wallet_balance');
+  const currentUserWalletBalances = (userWallets || [])
+    .reduce((s, u) => s + Number(u.wallet_balance || 0), 0);
+
+  // 6. Net money admin collected from bookings but hasn't paid out yet
+  //    = wallet spent on bookings - already paid to owners
+  const adminWalletBalance = Math.max(0, totalWalletSpentOnBookings - totalPaidOutToOwners);
+
+  // ── Bookings by status ────────────────────────────────────────────────────
+  const { data: statusRows } = await df(supabase.from('bookings').select('status'));
   const bookingsByStatus = {};
-  (allStatuses || []).forEach(({ status }) => {
+  (statusRows || []).forEach(({ status }) => {
     bookingsByStatus[status] = (bookingsByStatus[status] || 0) + 1;
   });
 
-  // Recent bookings
-  const { data: recentBookings } = await supabase
-    .from('bookings')
-    .select('*, turf:turf_id(id, name), user:user_id(id, name, email)')
-    .order('created_at', { ascending: false })
-    .limit(5);
+  // ── Recent bookings ───────────────────────────────────────────────────────
+  const { data: recentBookings } = await df(
+    supabase.from('bookings')
+      .select('*, turf:turf_id(id, name), user:user_id(id, name, email)')
+      .order('created_at', { ascending: false }).limit(5)
+  );
 
-  // Recent users
-  const { data: recentUsers } = await supabase
-    .from('users')
-    .select('id, name, email, role, created_at')
-    .order('created_at', { ascending: false })
-    .limit(5);
+  // ── Recent users ──────────────────────────────────────────────────────────
+  const { data: recentUsers } = await df(
+    supabase.from('users')
+      .select('id, name, email, role, created_at')
+      .order('created_at', { ascending: false }).limit(5)
+  );
 
-  // Monthly revenue last 6 months
+  // ── Monthly revenue (last 6 months) ──────────────────────────────────────
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-
   const { data: monthlyRows } = await supabase
-    .from('bookings')
-    .select('total_amount, created_at')
+    .from('bookings').select('total_amount, created_at')
     .in('status', ['confirmed', 'completed'])
     .gte('created_at', sixMonthsAgo.toISOString());
 
   const monthlyMap = {};
   (monthlyRows || []).forEach((b) => {
-    const d = new Date(b.created_at);
+    const d   = new Date(b.created_at);
     const key = `${d.getFullYear()}-${d.getMonth() + 1}`;
     if (!monthlyMap[key]) monthlyMap[key] = { year: d.getFullYear(), month: d.getMonth() + 1, revenue: 0, count: 0 };
     monthlyMap[key].revenue += Number(b.total_amount);
-    monthlyMap[key].count += 1;
+    monthlyMap[key].count   += 1;
   });
-  const monthlyRevenue = Object.values(monthlyMap).sort((a, b) =>
-    a.year !== b.year ? a.year - b.year : a.month - b.month
-  );
+  const monthlyRevenue = Object.values(monthlyMap)
+    .sort((a, b) => a.year !== b.year ? a.year - b.year : a.month - b.month);
 
   res.json({
     success: true,
     stats: {
-      totalUsers: totalUsers || 0,
-      totalTurfs: totalTurfs || 0,
+      totalUsers:    totalUsers    || 0,
+      totalTurfs:    totalTurfs    || 0,
       totalBookings: totalBookings || 0,
-      totalReviews: totalReviews || 0,
+      totalReviews:  totalReviews  || 0,
       totalRevenue,
+      // ── Wallet financial metrics (clear naming) ──
+      walletLoadedByUsers,         // Real cash + manual credits from users
+      walletFreeCredits,           // Admin-given bonus points (not real cash)
+      totalWalletSpentOnBookings,  // Total wallet deducted for bookings
+      totalPaidOutToOwners,        // Already transferred to turf owners
+      totalPendingPayouts,         // Still owed to turf owners
+      adminWalletBalance,          // Net: wallet spent - paid out (admin owes this)
+      currentUserWalletBalances,   // Total balance currently sitting in all user wallets
+      // Legacy aliases (for backward compat)
+      totalWalletUsage:       totalWalletSpentOnBookings,
+      totalWalletCollection:  walletLoadedByUsers,
       bookingsByStatus,
       recentBookings: (recentBookings || []).map((b) => ({
-        _id: b.id,
-        id: b.id,
+        _id: b.id, id: b.id,
         turf: b.turf ? { _id: b.turf.id, name: b.turf.name } : null,
         user: b.user ? { _id: b.user.id, name: b.user.name, email: b.user.email } : null,
-        status: b.status,
-        totalAmount: b.total_amount,
-        date: b.date,
-        createdAt: b.created_at,
+        status: b.status, totalAmount: b.total_amount, date: b.date, createdAt: b.created_at,
       })),
       recentUsers: (recentUsers || []).map((u) => ({ _id: u.id, ...u })),
-      monthlyRevenue: monthlyRevenue.map((m) => ({ _id: { year: m.year, month: m.month }, revenue: m.revenue, count: m.count })),
+      monthlyRevenue: monthlyRevenue.map((m) => ({
+        _id: { year: m.year, month: m.month }, revenue: m.revenue, count: m.count,
+      })),
     },
   });
 });
+
 
 // @desc    Get all users
 // @route   GET /api/admin/users

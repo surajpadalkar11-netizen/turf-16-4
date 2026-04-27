@@ -1,0 +1,191 @@
+# PAYOUT SYSTEM - HOW IT WORKS
+
+## Overview
+When a user pays for a booking using their wallet, the money goes to the admin's Razorpay account. The admin then processes payouts to transfer money to each turf owner's Razorpay account.
+
+## Flow Diagram
+
+USER WALLET PAYMENT:
+User → Razorpay Payment → Admin Razorpay Account → Wallet Balance
+
+BOOKING WITH WALLET:
+User Wallet → Booking Payment → Tracked in Database
+
+ADMIN PAYOUT:
+Admin → Process Payout → Transfer from Admin Razorpay → Turf Owner Razorpay Account
+
+## Step-by-Step Process
+
+### 1. User Adds Money to Wallet
+- User clicks "Add to Wallet" (₹500)
+- Razorpay checkout opens
+- User pays with card/UPI/netbanking
+- Money goes to ADMIN's Razorpay account
+- User's wallet balance increases by ₹500
+- Email sent to user confirming wallet credit
+
+### 2. User Books Turf with Wallet
+- User selects turf and time slot
+- User chooses "Pay with Wallet"
+- ₹500 deducted from user's wallet balance
+- Booking created with:
+  - wallet_amount_used = 500
+  - payment_method = 'wallet'
+  - payout_status = 'pending'
+- Email sent to user (booking confirmation)
+- Email sent to turf owner (new booking notification)
+
+### 3. Admin Views Pending Payouts
+- Admin logs into admin panel
+- Goes to Payouts page
+- Sees all bookings paid via wallet
+- Statistics show:
+  - Pending Payouts: ₹500 (1 booking)
+  - Completed Payouts: ₹0 (0 bookings)
+- Each booking shows:
+  - Turf name
+  - Owner email
+  - Owner's Razorpay Key ID (e.g., rzp_live_xxxxx)
+  - Amount to pay
+
+### 4. Admin Processes Payout
+- Admin clicks "Pay Now" button
+- Confirmation dialog shows:
+  - Amount: ₹500
+  - Turf: ABC Sports Arena
+  - Owner's Razorpay Account: rzp_live_xxxxx
+- Admin confirms
+- Backend processes:
+  - Uses admin's Razorpay credentials
+  - Transfers ₹500 to turf owner's Razorpay account
+  - Records transfer ID
+  - Updates booking:
+    - payout_status = 'completed'
+    - payout_amount = 500
+    - payout_date = current timestamp
+    - razorpay_payout_id = transfer ID
+    - payout_account = turf owner's razorpay_key_id
+
+### 5. Payout Completed
+- Status changes to "Completed"
+- Transfer ID displayed
+- Turf owner receives money in their Razorpay account
+- Statistics update:
+  - Pending Payouts: ₹0 (0 bookings)
+  - Completed Payouts: ₹500 (1 booking)
+
+## Database Fields
+
+### bookings table:
+- wallet_amount_used: Amount paid via wallet
+- payment_method: 'wallet', 'online', 'cash', 'mixed'
+- payout_status: 'pending', 'completed', 'failed'
+- payout_amount: Amount paid to turf owner
+- payout_date: When payout was processed
+- payout_processed_by: Admin user ID who processed it
+- razorpay_payout_id: Razorpay transfer/payout ID
+- payout_account: Turf owner's razorpay_key_id
+
+### turfs table:
+- razorpay_key_id: Turf owner's Razorpay Key ID
+- razorpay_key_secret: Turf owner's Razorpay Secret (encrypted)
+
+### admin_settings table:
+- razorpay_key_id: Admin's Razorpay Key ID
+- razorpay_key_secret: Admin's Razorpay Secret
+
+## Razorpay Accounts Required
+
+### Admin (Platform Owner - YOU):
+- Razorpay account with Payouts enabled
+- Configure in Admin Panel → Settings
+- This account receives all wallet top-ups
+- This account sends payouts to turf owners
+
+### Turf Owners:
+- Each turf owner needs their own Razorpay account
+- Configure when adding/editing turf
+- This account receives payouts from admin
+
+## Important Notes
+
+1. **Razorpay Payouts API**:
+   - Requires Razorpay X (Current Account)
+   - Must enable Payouts feature
+   - May have transaction fees
+   - Currently code marks as "manual" - you can integrate full API
+
+2. **Security**:
+   - Admin Razorpay keys stored in admin_settings table
+   - Turf owner keys stored in turfs table
+   - All secrets encrypted in database
+   - Only admin can process payouts
+
+3. **Validation**:
+   - Cannot process payout if turf owner has no Razorpay account
+   - Cannot process payout twice
+   - Cannot process if no wallet payment exists
+
+4. **Tracking**:
+   - Every payout has transfer ID
+   - Records which admin processed it
+   - Records exact timestamp
+   - Records which Razorpay account received it
+
+## Testing Checklist
+
+1. ✅ Admin configures Razorpay keys in Settings
+2. ✅ Turf owner has Razorpay key configured in turf
+3. ✅ User adds money to wallet
+4. ✅ User books turf with wallet
+5. ✅ Admin sees booking in Payouts (pending)
+6. ✅ Admin sees turf owner's Razorpay account
+7. ✅ Admin clicks "Pay Now"
+8. ✅ Confirmation shows all details
+9. ✅ Payout processes successfully
+10. ✅ Status changes to completed
+11. ✅ Transfer ID recorded
+12. ✅ Statistics update correctly
+
+## Error Scenarios
+
+1. **Turf owner has no Razorpay account**:
+   - Button disabled
+   - Warning shown: "⚠️ No Razorpay account"
+   - Cannot process payout
+
+2. **Admin Razorpay not configured**:
+   - Error: "Admin Razorpay not configured"
+   - Must configure in Settings first
+
+3. **Razorpay API fails**:
+   - Error message shown
+   - Payout status remains "pending"
+   - Can retry later
+
+4. **Already paid**:
+   - Error: "Payout already completed"
+   - Shows transfer ID from previous payout
+
+## Future Enhancements
+
+1. **Automatic Payouts**:
+   - Schedule automatic payouts daily/weekly
+   - Batch process multiple payouts
+
+2. **Payout Reports**:
+   - Generate payout reports
+   - Export to CSV/PDF
+
+3. **Notifications**:
+   - Email turf owner when payout processed
+   - SMS notifications
+
+4. **Payout History**:
+   - Detailed payout history per turf
+   - Filter by date range
+
+5. **Razorpay Webhooks**:
+   - Listen for payout status updates
+   - Auto-update database
+

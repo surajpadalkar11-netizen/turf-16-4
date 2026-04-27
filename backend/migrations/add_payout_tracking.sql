@@ -17,5 +17,11 @@ ALTER TABLE bookings
 ALTER TABLE bookings
   ADD COLUMN IF NOT EXISTS payout_processed_by UUID REFERENCES users(id);
 
+ALTER TABLE bookings
+  ADD COLUMN IF NOT EXISTS razorpay_payout_id TEXT;
+
+ALTER TABLE bookings
+  ADD COLUMN IF NOT EXISTS payout_account TEXT;
+
 -- Create index for faster payout queries
 CREATE INDEX IF NOT EXISTS idx_bookings_payout ON bookings(payout_status, wallet_amount_used);

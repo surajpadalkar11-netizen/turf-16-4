@@ -540,14 +540,98 @@
 }
 .browseBtn:hover { transform: translateY(-2px); }
 
-/* Mobile */
+/* ══ RESPONSIVE ═══════════════════════════════════════ */
+
+/* Ensure no iOS zoom on inputs */
+input, select, textarea { font-size: 16px !important; }
+
 @media (max-width: 600px) {
-  .page { padding: 16px 12px 40px; }
-  .pageTitle { font-size: 20px; }
-  .card { padding: 18px; }
-  .advanceOptions { grid-template-columns: repeat(2, 1fr); }
-  .successActions { flex-direction: column; }
-  .successCard { padding: 32px 20px; }
-  .pageHeader { flex-direction: column; align-items: flex-start; gap: 10px; }
-  .ctaAmount { font-size: 26px; }
+  .page { padding: 14px 12px 60px; }
+
+  .pageHeader {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .pageTitle { font-size: 19px; }
+  .pageSubtitle { font-size: 13px; }
+
+  .card { padding: 16px 14px; border-radius: 16px; }
+  .cardTitle { font-size: 15px; }
+  .cardIcon { font-size: 18px; }
+
+  /* Turf name smaller */
+  .turfName { font-size: 16px; }
+
+  /* Detail rows: stack label/value if needed */
+  .detailLabel { font-size: 12px; }
+  .detailValue { font-size: 13px; }
+
+  /* Slot chips: smaller */
+  .slotChip { font-size: 11px; padding: 4px 8px; }
+
+  /* Player counter: full-width */
+  .playerCounter {
+    width: 100%;
+    justify-content: center;
+  }
+  .counterBtn { width: 44px; height: 44px; font-size: 22px; }
+  .counterVal { font-size: 22px; min-width: 40px; }
+
+  /* Textarea */
+  .textarea {
+    font-size: 16px !important;
+    padding: 14px;
+    border-radius: 12px;
+    min-height: 80px;
+  }
+
+  /* Amount summary card */
+  .amtSummaryCard { padding: 18px 16px; border-radius: 16px; }
+  .totalPrice { font-size: 26px; }
+
+  /* Payment mode cards: make them bigger tap targets */
+  .payModeCard {
+    padding: 14px 14px;
+    border-radius: 14px;
+  }
+  .payModeIcon { font-size: 22px; }
+  .payModeLabel { font-size: 14px; }
+  .payModeDesc { font-size: 12px; }
+
+  /* Advance options: 2-column grid */
+  .advanceOptions { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .advBtn { padding: 14px 8px; font-size: 14px; border-radius: 14px; min-height: 60px; }
+  .advAmt { font-size: 12px; }
+
+  /* Custom input */
+  .customInputWrap { border-radius: 14px; }
+  .customInput { font-size: 20px !important; padding: 14px 14px 14px 0; }
+  .rupeeSign { font-size: 20px; padding: 0 10px; }
+
+  /* CTA box */
+  .ctaBox { padding: 18px 16px; border-radius: 16px; }
+  .ctaAmount { font-size: 28px; }
+  .payBtn {
+    padding: 18px;
+    font-size: 16px;
+    border-radius: 16px;
+    min-height: 58px;
+  }
+
+  /* Success */
+  .successCard { padding: 28px 18px; border-radius: 20px; }
+  .successTitle { font-size: 22px; }
+  .bookingCode { font-size: 26px; letter-spacing: 4px; }
+  .successActions { flex-direction: column; gap: 10px; }
+  .successBtn, .successBtnSecondary { padding: 16px; font-size: 15px; min-height: 54px; }
+}
+
+@media (max-width: 380px) {
+  .payModeGrid { gap: 8px; }
+  .advanceOptions { gap: 8px; }
+  .advBtn { padding: 12px 6px; font-size: 13px; }
 }
