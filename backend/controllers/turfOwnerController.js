@@ -385,7 +385,7 @@ exports.getTurfSlots = asyncHandler(async (req, res) => {
           ? 'blocked'
           : overlappingInfo.bookingStatus === 'completed'
           ? 'completed'
-          : (overlappingInfo.bookingStatus === 'confirmed' && overlappingInfo.paymentStatus === 'paid')
+          : (overlappingInfo.bookingStatus === 'confirmed' || overlappingInfo.paymentStatus === 'paid' || overlappingInfo.paymentStatus === 'partially_paid')
           ? 'booked'
           : 'pending'
         : 'available',

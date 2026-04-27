@@ -437,7 +437,7 @@ export default function Slots() {
       <div className={styles.summaryBar}>
         {[
           { label: 'Available', count: available, color: '#94a3b8' },
-          { label: 'Fully Paid', count: booked, color: '#059669' },
+          { label: 'Booked', count: booked, color: '#059669' },
           { label: 'Pending',   count: pending, color: '#f59e0b' },
           { label: 'Completed', count: completed, color: '#8b5cf6' },
           { label: 'Blocked',   count: blockedCnt, color: '#ef4444' },
