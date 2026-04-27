@@ -84,42 +84,87 @@ exports.getTurfs = asyncHandler(async (req, res) => {
   let turfs = (data || []).map(mapTurf);
 
   // ── Availability filter ─────────────────────────────────────────
-  // If caller passes ?date=YYYY-MM-DD&time=HH:MM, only return turfs
-  // whose slot at that time is still free AND whose operating hours cover it.
-  if (date && time) {
-    const [qh, qm] = time.split(':').map(Number);
-    const queryMins = qh * 60 + qm;
+  // Filter by date (required) + optional time.
+  // - date only  → remove turfs that are FULLY booked all day
+  // - date+time  → remove turfs that have a booking overlapping that exact time,
+  //               and remove turfs whose operating hours don't include that time
+  if (date) {
     const turfIds = turfs.map((t) => t.id);
 
     if (turfIds.length > 0) {
+      // Include 'completed' — a completed slot today is still physically occupied.
+      // We must block it so users can't double-book the same time window.
       const { data: bookings } = await supabase
         .from('bookings')
         .select('turf_id, time_slots')
         .in('turf_id', turfIds)
         .eq('date', date)
-        .in('status', ['confirmed', 'pending']);
+        .in('status', ['confirmed', 'pending', 'completed']);
 
-      const unavailable = new Set();
-      (bookings || []).forEach((b) => {
-        (b.time_slots || []).forEach((s) => {
-          const [h1, m1] = s.start.split(':').map(Number);
-          const [h2, m2] = s.end.split(':').map(Number);
-          const sMin = h1 * 60 + m1;
-          let eMin = h2 * 60 + m2;
-          if (eMin <= sMin) eMin += 1440;
-          if (queryMins >= sMin && queryMins < eMin) unavailable.add(b.turf_id);
+      if (time) {
+        // ── Time-specific filter ──────────────────────────────────
+        const [qh, qm] = time.split(':').map(Number);
+        const queryMins = qh * 60 + qm;
+
+        const unavailable = new Set();
+        (bookings || []).forEach((b) => {
+          (b.time_slots || []).forEach((s) => {
+            const [h1, m1] = String(s.start).split(':').map(Number);
+            const [h2, m2] = String(s.end).split(':').map(Number);
+            const sMin = h1 * 60 + m1;
+            let eMin = h2 * 60 + m2;
+            if (eMin <= sMin) eMin += 1440; // overnight wrap
+            // Query time falls within [sMin, eMin) → slot is occupied
+            if (queryMins >= sMin && queryMins < eMin) unavailable.add(b.turf_id);
+          });
         });
-      });
 
-      turfs = turfs.filter((t) => {
-        const [oh, om] = (t.operatingHours?.open || '00:00').split(':').map(Number);
-        const [ch, cm] = (t.operatingHours?.close || '23:59').split(':').map(Number);
-        const openMin = oh * 60 + om;
-        let closeMin = ch * 60 + cm;
-        if (closeMin <= openMin) closeMin += 1440;
-        const operates = queryMins >= openMin && queryMins < closeMin;
-        return operates && !unavailable.has(t.id);
-      });
+        turfs = turfs.filter((t) => {
+          // Must operate at query time
+          const [oh, om] = (t.operatingHours?.open || '00:00').split(':').map(Number);
+          const [ch, cm] = (t.operatingHours?.close || '23:59').split(':').map(Number);
+          const openMin = oh * 60 + om;
+          let closeMin = ch * 60 + cm;
+          if (closeMin <= openMin) closeMin += 1440;
+          const operates = queryMins >= openMin && queryMins < closeMin;
+          return operates && !unavailable.has(t.id);
+        });
+      } else {
+        // ── Date-only filter: keep turfs that have ANY free slot ───
+        // Build per-turf booked minutes map (include completed — physically taken)
+        const bookedMinsMap = {};
+        (bookings || []).forEach((b) => {
+          if (!bookedMinsMap[b.turf_id]) bookedMinsMap[b.turf_id] = [];
+          (b.time_slots || []).forEach((s) => {
+            const [h1, m1] = String(s.start).split(':').map(Number);
+            const [h2, m2] = String(s.end).split(':').map(Number);
+            const sMin = h1 * 60 + m1;
+            let eMin = h2 * 60 + m2;
+            if (eMin <= sMin) eMin += 1440;
+            bookedMinsMap[b.turf_id].push({ sMin, eMin });
+          });
+        });
+
+        // A turf is available if there is at least one 60-min window free in operating hours
+        turfs = turfs.filter((t) => {
+          const [oh, om] = (t.operatingHours?.open || '06:00').split(':').map(Number);
+          const [ch, cm] = (t.operatingHours?.close || '23:00').split(':').map(Number);
+          const openMin = oh * 60 + om;
+          let closeMin = ch * 60 + cm;
+          if (closeMin <= openMin) closeMin += 1440;
+          const booked = bookedMinsMap[t.id] || [];
+
+          // Check every 60-min window
+          for (let start = openMin; start + 60 <= closeMin; start += 60) {
+            const end = start + 60;
+            const isBooked = booked.some(
+              (r) => start < r.eMin && end > r.sMin
+            );
+            if (!isBooked) return true; // at least one free slot
+          }
+          return false; // all slots booked
+        });
+      }
     }
 
     const total = turfs.length;
@@ -127,9 +172,9 @@ exports.getTurfs = asyncHandler(async (req, res) => {
     const paged = turfs.slice(skip2, skip2 + Number(limit));
     return res.json({
       success: true, count: paged.length, total,
-      totalPages: Math.ceil(total / Number(limit)),
+      totalPages: Math.ceil(total / Number(limit)) || 1,
       page: Number(page), turfs: paged,
-      searchContext: { date, time, availabilityFiltered: true },
+      searchContext: { date, time: time || null, availabilityFiltered: true },
     });
   }
 
