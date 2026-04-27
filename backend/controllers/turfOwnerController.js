@@ -3,19 +3,52 @@ const bcrypt = require('bcryptjs');
 const supabase = require('../config/supabase');
 const { asyncHandler } = require('../utils/helpers');
 
-const generateToken = (id) =>
-  jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRE });
+const generateToken = (payload) =>
+  jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRE });
 
-// @desc    Turf owner login (using owner_email of their turf)
+// @desc    Turf owner / supervisor login
 // @route   POST /api/turf-owner/login
 exports.turfOwnerLogin = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
+  const normalizedEmail = email.trim().toLowerCase();
 
-  // Find user by email
+  // ── 1. Check supervisors table first ──────────────────────────────────
+  const { data: supervisor } = await supabase
+    .from('supervisors')
+    .select('id, turf_id, name, email, password, is_active, turf:turf_id(id, name)')
+    .eq('email', normalizedEmail)
+    .single();
+
+  if (supervisor) {
+    if (!supervisor.is_active) {
+      return res.status(403).json({ success: false, message: 'Supervisor account is disabled' });
+    }
+    const isMatch = await bcrypt.compare(password, supervisor.password);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
+    // Return supervisor session – token payload marks it as supervisor
+    const token = generateToken({ supervisorId: supervisor.id, role: 'supervisor' });
+    return res.json({
+      success: true,
+      token,
+      user: {
+        id: supervisor.id,
+        name: supervisor.name,
+        email: supervisor.email,
+        role: 'supervisor',
+        avatar: '',
+      },
+      turfs: supervisor.turf ? [supervisor.turf] : [],
+      supervisorTurfId: supervisor.turf_id,
+    });
+  }
+
+  // ── 2. Normal owner / admin login ─────────────────────────────────────
   const { data: user, error } = await supabase
     .from('users')
     .select('id, name, email, phone, role, avatar, password')
-    .eq('email', email.trim().toLowerCase())
+    .eq('email', normalizedEmail)
     .single();
 
   if (error || !user) {
@@ -37,11 +70,11 @@ exports.turfOwnerLogin = asyncHandler(async (req, res) => {
     return res.status(403).json({ success: false, message: 'No turf associated with this account' });
   }
 
-  const token = generateToken(user.id);
+  const token = generateToken({ id: user.id });
   res.json({
     success: true,
     token,
-    user: { id: user.id, name: user.name, email: user.email, phone: user.phone, role: user.role, avatar: user.avatar },
+    user: { id: user.id, name: user.name, email: user.email, phone: user.phone, role: user.role || 'owner', avatar: user.avatar },
     turfs: ownedTurfs || [],
   });
 });
@@ -98,7 +131,7 @@ exports.getTurfStats = asyncHandler(async (req, res) => {
   // Today's bookings
   const { data: todayBookingsData } = await supabase
     .from('bookings')
-    .select('id, status, payment_status, total_amount, amount_paid, time_slots, notes')
+    .select('id, status, payment_status, total_amount, amount_paid, wallet_amount_used, time_slots, notes')
     .eq('turf_id', turfId)
     .eq('date', today)
     .neq('status', 'cancelled');
@@ -107,7 +140,7 @@ exports.getTurfStats = asyncHandler(async (req, res) => {
   // This month's bookings
   const { data: monthBookingsData } = await supabase
     .from('bookings')
-    .select('id, status, payment_status, total_amount, amount_paid, time_slots, notes')
+    .select('id, status, payment_status, total_amount, amount_paid, wallet_amount_used, time_slots, notes')
     .eq('turf_id', turfId)
     .gte('date', monthStart)
     .lte('date', monthEnd)
@@ -125,7 +158,10 @@ exports.getTurfStats = asyncHandler(async (req, res) => {
     const min = (b.time_slots || []).reduce((sum, s) => {
       const [h1, m1] = s.start.split(':').map(Number);
       const [h2, m2] = s.end.split(':').map(Number);
-      return sum + ((h2 * 60 + m2) - (h1 * 60 + m1));
+      const startMins = h1 * 60 + m1;
+      let endMins = h2 * 60 + m2;
+      if (endMins <= startMins) endMins += 1440; // midnight crossing
+      return sum + (endMins - startMins);
     }, 0);
     return total + (min / 60);
   }, 0);
@@ -133,7 +169,7 @@ exports.getTurfStats = asyncHandler(async (req, res) => {
   // This week's bookings
   const { data: weekBookingsData } = await supabase
     .from('bookings')
-    .select('id, status, payment_status, total_amount, amount_paid, time_slots, notes')
+    .select('id, status, payment_status, total_amount, amount_paid, wallet_amount_used, time_slots, notes')
     .eq('turf_id', turfId)
     .gte('date', weekStartStr)
     .lte('date', weekEndStr)
@@ -151,7 +187,10 @@ exports.getTurfStats = asyncHandler(async (req, res) => {
     const min = (b.time_slots || []).reduce((sum, s) => {
       const [h1, m1] = s.start.split(':').map(Number);
       const [h2, m2] = s.end.split(':').map(Number);
-      return sum + ((h2 * 60 + m2) - (h1 * 60 + m1));
+      const startMins = h1 * 60 + m1;
+      let endMins = h2 * 60 + m2;
+      if (endMins <= startMins) endMins += 1440;
+      return sum + (endMins - startMins);
     }, 0);
     return total + (min / 60);
   }, 0);
@@ -161,7 +200,10 @@ exports.getTurfStats = asyncHandler(async (req, res) => {
     const min = (b.time_slots || []).reduce((sum, s) => {
       const [h1, m1] = s.start.split(':').map(Number);
       const [h2, m2] = s.end.split(':').map(Number);
-      return sum + ((h2 * 60 + m2) - (h1 * 60 + m1));
+      const startMins = h1 * 60 + m1;
+      let endMins = h2 * 60 + m2;
+      if (endMins <= startMins) endMins += 1440;
+      return sum + (endMins - startMins);
     }, 0);
     return total + (min / 60);
   }, 0);
@@ -169,7 +211,7 @@ exports.getTurfStats = asyncHandler(async (req, res) => {
   // Overall all-time bookings
   const { data: overallBookingsData } = await supabase
     .from('bookings')
-    .select('id, status, payment_status, total_amount, amount_paid, time_slots, notes')
+    .select('id, status, payment_status, total_amount, amount_paid, wallet_amount_used, time_slots, notes')
     .eq('turf_id', turfId)
     .neq('status', 'cancelled');
   const overallBookings = (overallBookingsData || []).filter((b) => b.notes !== 'Blocked by Admin');
@@ -185,7 +227,10 @@ exports.getTurfStats = asyncHandler(async (req, res) => {
     const min = (b.time_slots || []).reduce((sum, s) => {
       const [h1, m1] = s.start.split(':').map(Number);
       const [h2, m2] = s.end.split(':').map(Number);
-      return sum + ((h2 * 60 + m2) - (h1 * 60 + m1));
+      const startMins = h1 * 60 + m1;
+      let endMins = h2 * 60 + m2;
+      if (endMins <= startMins) endMins += 1440;
+      return sum + (endMins - startMins);
     }, 0);
     return total + (min / 60);
   }, 0);
@@ -199,6 +244,7 @@ exports.getTurfStats = asyncHandler(async (req, res) => {
         confirmedBookings: (todayBookings || []).filter((b) => b.status === 'confirmed').length,
         completedBookings: (todayBookings || []).filter((b) => b.status === 'completed').length,
         revenue: (todayBookings || []).reduce((sum, b) => sum + Number(b.amount_paid || 0), 0),
+        walletRevenue: (todayBookings || []).reduce((sum, b) => sum + Number(b.wallet_amount_used || 0), 0),
         pending: (todayBookings || []).reduce(
           (sum, b) => sum + (Number(b.total_amount || 0) - Number(b.amount_paid || 0)),
           0
@@ -213,6 +259,7 @@ exports.getTurfStats = asyncHandler(async (req, res) => {
         confirmedBookings: (weekBookings || []).filter((b) => b.status === 'confirmed').length,
         completedBookings: (weekBookings || []).filter((b) => b.status === 'completed').length,
         revenue: weekRevenue,
+        walletRevenue: (weekBookings || []).reduce((sum, b) => sum + Number(b.wallet_amount_used || 0), 0),
         pending: weekPending,
         fullyPaid: (weekBookings || []).filter((b) => b.payment_status === 'paid').length,
         partiallyPaid: (weekBookings || []).filter((b) => b.payment_status === 'partially_paid').length,
@@ -224,6 +271,7 @@ exports.getTurfStats = asyncHandler(async (req, res) => {
         confirmedBookings: (monthBookings || []).filter((b) => b.status === 'confirmed').length,
         completedBookings: (monthBookings || []).filter((b) => b.status === 'completed').length,
         revenue: monthRevenue,
+        walletRevenue: (monthBookings || []).reduce((sum, b) => sum + Number(b.wallet_amount_used || 0), 0),
         pending: monthPending,
         fullyPaid: (monthBookings || []).filter((b) => b.payment_status === 'paid').length,
         partiallyPaid: (monthBookings || []).filter((b) => b.payment_status === 'partially_paid').length,
@@ -235,6 +283,7 @@ exports.getTurfStats = asyncHandler(async (req, res) => {
         confirmedBookings: (overallBookings || []).filter((b) => b.status === 'confirmed').length,
         completedBookings: (overallBookings || []).filter((b) => b.status === 'completed').length,
         revenue: overallRevenue,
+        walletRevenue: (overallBookings || []).reduce((sum, b) => sum + Number(b.wallet_amount_used || 0), 0),
         pending: overallPending,
         bookedSlotsCount: overallBookedHours,
         fullyPaid: (overallBookings || []).filter((b) => b.payment_status === 'paid').length,
@@ -374,7 +423,9 @@ exports.verifyBookingCode = asyncHandler(async (req, res) => {
   const isOwner =
     req.user.id === booking.turf?.owner_id ||
     req.user.email === booking.turf?.owner_email ||
-    req.user.role === 'admin';
+    req.user.role === 'admin' ||
+    (req.user.role === 'supervisor' && req.supervisor && req.supervisor.turf_id === booking.turf_id);
+
 
   if (!isOwner) return res.status(403).json({ success: false, message: 'This booking is not for your turf' });
 

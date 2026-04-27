@@ -220,6 +220,9 @@ export default function Bookings() {
                         </td>
                         <td>
                           <div className={styles.payTotal}>Total: ₹{fmt(b.totalAmount)}</div>
+                          {b.walletAmountUsed > 0 && (
+                            <div className={styles.payWallet}>💰 Wallet: ₹{fmt(b.walletAmountUsed)}</div>
+                          )}
                           {remaining > 0 ? (
                             <div className={styles.payPending}>Collect: ₹{fmt(remaining)}</div>
                           ) : (
@@ -283,6 +286,9 @@ export default function Bookings() {
 
                   <div className={styles.mobilePayRow}>
                     <span>Total: <strong>₹{fmt(b.totalAmount)}</strong></span>
+                    {b.walletAmountUsed > 0 && (
+                      <span className={styles.payWallet}>💰 ₹{fmt(b.walletAmountUsed)}</span>
+                    )}
                     {remaining > 0 ? (
                       <span className={styles.payPending}>Collect: ₹{fmt(remaining)}</span>
                     ) : (

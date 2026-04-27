@@ -17,6 +17,7 @@ const paymentRoutes = require('./routes/paymentRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const turfOwnerRoutes = require('./routes/turfOwnerRoutes');
+const walletRoutes = require('./routes/walletRoutes');
 
 const app = express();
 
@@ -66,6 +67,7 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/turf-owner', turfOwnerRoutes);
+app.use('/api/wallet', walletRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

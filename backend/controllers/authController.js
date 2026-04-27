@@ -18,6 +18,7 @@ const formatUser = (u) => ({
   phone: u.phone,
   role: u.role,
   avatar: u.avatar,
+  walletBalance: Number(u.wallet_balance || 0),
 });
 
 // @desc    Register user
@@ -36,7 +37,7 @@ exports.register = asyncHandler(async (req, res) => {
   const { data: user, error } = await supabase
     .from('users')
     .insert({ name: name.trim(), email: email.toLowerCase().trim(), password: hashedPassword, phone })
-    .select('id, name, email, phone, role, avatar')
+    .select('id, name, email, phone, role, avatar, wallet_balance')
     .single();
 
   if (error) throw error;
@@ -52,7 +53,7 @@ exports.login = asyncHandler(async (req, res) => {
 
   const { data: user, error } = await supabase
     .from('users')
-    .select('id, name, email, phone, role, avatar, password')
+    .select('id, name, email, phone, role, avatar, wallet_balance, password')
     .eq('email', email.toLowerCase())
     .single();
 
@@ -94,7 +95,7 @@ exports.googleLogin = asyncHandler(async (req, res) => {
   // Check if user exists
   const { data: existingUser } = await supabase
     .from('users')
-    .select('id, name, email, phone, role, avatar')
+    .select('id, name, email, phone, role, avatar, wallet_balance')
     .eq('email', email.toLowerCase())
     .single();
 
@@ -117,7 +118,7 @@ exports.googleLogin = asyncHandler(async (req, res) => {
       password: crypto.randomBytes(16).toString('hex'), // Dummy password to satisfy NOT NULL constraint
       avatar: picture || null,
     })
-    .select('id, name, email, phone, role, avatar')
+    .select('id, name, email, phone, role, avatar, wallet_balance')
     .single();
 
   if (error) {
@@ -134,7 +135,7 @@ exports.googleLogin = asyncHandler(async (req, res) => {
 exports.getMe = asyncHandler(async (req, res) => {
   const { data: user, error } = await supabase
     .from('users')
-    .select('id, name, email, phone, role, avatar, favorites')
+    .select('id, name, email, phone, role, avatar, favorites, wallet_balance')
     .eq('id', req.user.id)
     .single();
 
@@ -150,7 +151,7 @@ exports.getMe = asyncHandler(async (req, res) => {
     favoritesTurfs = favs || [];
   }
 
-  res.json({ success: true, user: { ...user, _id: user.id, favoriteTurfs: favoritesTurfs } });
+  res.json({ success: true, user: { ...user, _id: user.id, walletBalance: Number(user.wallet_balance || 0), favoriteTurfs: favoritesTurfs } });
 });
 
 // @desc    Update profile
@@ -166,7 +167,7 @@ exports.updateProfile = asyncHandler(async (req, res) => {
     .from('users')
     .update(updates)
     .eq('id', req.user.id)
-    .select('id, name, email, phone, role, avatar')
+    .select('id, name, email, phone, role, avatar, wallet_balance')
     .single();
 
   if (error) throw error;

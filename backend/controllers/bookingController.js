@@ -15,6 +15,8 @@ const mapBooking = (b) => ({
   amountPaid: b.amount_paid || 0,
   remainingAmount: (b.total_amount || 0) - (b.amount_paid || 0),
   paymentStatus: b.payment_status || 'unpaid',
+  paymentMethod: b.payment_method || 'online',
+  walletAmountUsed: b.wallet_amount_used || 0,
   status: b.status,
   paymentId: b.payment_id,
   notes: b.notes,
@@ -37,16 +39,57 @@ exports.createBooking = asyncHandler(async (req, res) => {
     return res.status(404).json({ success: false, message: 'Turf not found' });
   }
 
-  // Check slot availability
-  const { data: existing } = await supabase
+  // ── Step 0: Purge stale pending+unpaid bookings (older than 15 min) ────────────
+  // These are bookings where the user opened the payment page but never paid.
+  const fifteenMinAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+  const { data: stalePending } = await supabase
     .from('bookings')
-    .select('time_slots')
+    .select('id')
     .eq('turf_id', turfId)
     .eq('date', date)
-    .in('status', ['confirmed', 'pending']);
+    .eq('status', 'pending')
+    .eq('payment_status', 'unpaid')
+    .lt('created_at', fifteenMinAgo);
+
+  if (stalePending && stalePending.length > 0) {
+    const staleIds = stalePending.map((b) => b.id);
+    await supabase
+      .from('bookings')
+      .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+      .in('id', staleIds);
+    console.log(`🧹 [createBooking] Purged ${staleIds.length} stale pending bookings for turf ${turfId} on ${date}`);
+  }
+
+  // ── Step 1: Check slot availability ───────────────────────────────────
+  // Only block slots that are:
+  //   a) confirmed (paid or partially paid), OR
+  //   b) pending AND created within the last 15 minutes (active checkout window)
+  const recentCutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+
+  const { data: existing } = await supabase
+    .from('bookings')
+    .select('time_slots, status, payment_status, created_at')
+    .eq('turf_id', turfId)
+    .eq('date', date)
+    .in('status', ['confirmed', 'pending'])
+    .neq('payment_status', 'unpaid') // confirmed/partially-paid ones always block
+    // NOTE: We also want recent unpaid-pending ones. We handle that below.
+    ;
+
+  // Separately fetch recent unpaid-pending (within 15 min checkout window)
+  const { data: recentPending } = await supabase
+    .from('bookings')
+    .select('time_slots, status, payment_status, created_at')
+    .eq('turf_id', turfId)
+    .eq('date', date)
+    .eq('status', 'pending')
+    .eq('payment_status', 'unpaid')
+    .gte('created_at', recentCutoff);
+
+  const allBlockingBookings = [...(existing || []), ...(recentPending || [])];
 
   const bookedSlots = new Set();
-  (existing || []).forEach((b) => (b.time_slots || []).forEach((s) => bookedSlots.add(s.start)));
+  allBlockingBookings.forEach((b) => (b.time_slots || []).forEach((s) => bookedSlots.add(s.start)));
 
   const formatTime = (timeStr) => {
     if (!timeStr) return '';
@@ -96,7 +139,6 @@ exports.createBooking = asyncHandler(async (req, res) => {
   // Validate advance amount
   const parsedAdvance = Number(advanceAmount) || 0;
   const validAdvance = Math.max(0, Math.min(parsedAdvance, totalAmount));
-  const paymentStatus = validAdvance >= totalAmount ? 'paid' : validAdvance > 0 ? 'partially_paid' : 'unpaid';
 
   const { data: booking, error } = await supabase
     .from('bookings')
@@ -110,6 +152,7 @@ exports.createBooking = asyncHandler(async (req, res) => {
       advance_amount: validAdvance,
       amount_paid: 0, // Will be updated after payment verification
       payment_status: 'unpaid', // Will be updated after payment
+      status: 'pending',
       notes,
     })
     .select()
@@ -120,6 +163,39 @@ exports.createBooking = asyncHandler(async (req, res) => {
   const mappedBooking = mapBooking({ ...booking, turf });
   res.status(201).json({ success: true, booking: mappedBooking });
 });
+
+// @desc    Abort a pending booking (user dismissed payment)
+// @route   DELETE /api/bookings/:id/abort
+exports.abortBooking = asyncHandler(async (req, res) => {
+  const { data: booking } = await supabase
+    .from('bookings')
+    .select('id, user_id, status, payment_status')
+    .eq('id', req.params.id)
+    .single();
+
+  if (!booking) {
+    // Already gone — that's fine
+    return res.json({ success: true, message: 'Booking not found (already removed)' });
+  }
+
+  // Only the owner of this booking can abort it, and only if still pending + unpaid
+  if (booking.user_id !== req.user.id) {
+    return res.status(403).json({ success: false, message: 'Not authorized' });
+  }
+
+  if (booking.status !== 'pending' || booking.payment_status !== 'unpaid') {
+    // Already paid / confirmed — do not cancel
+    return res.json({ success: true, message: 'Booking already processed, not aborted' });
+  }
+
+  await supabase
+    .from('bookings')
+    .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+    .eq('id', req.params.id);
+
+  res.json({ success: true, message: 'Booking aborted' });
+});
+
 
 // @desc    Get user's bookings
 // @route   GET /api/bookings/my
@@ -254,7 +330,8 @@ exports.getTurfBookings = asyncHandler(async (req, res) => {
   const isOwner =
     (req.user.role === 'turf_owner' && req.user.email === turf.owner_email) ||
     req.user.id === turf.owner_id ||
-    req.user.role === 'admin';
+    req.user.role === 'admin' ||
+    (req.user.role === 'supervisor' && req.supervisor && req.supervisor.turf_id === turfId);
 
   if (!isOwner) return res.status(403).json({ success: false, message: 'Not authorized' });
 

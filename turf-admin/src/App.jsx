@@ -9,6 +9,10 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Bookings = lazy(() => import('./pages/Bookings'));
 const Slots = lazy(() => import('./pages/Slots'));
 const Scanner = lazy(() => import('./pages/Scanner'));
+const Supervisors = lazy(() => import('./pages/Supervisors'));
+const SupervisorDashboard = lazy(() => import('./pages/SupervisorDashboard'));
+const Settings = lazy(() => import('./pages/Settings'));
+const Payouts = lazy(() => import('./pages/Payouts'));
 
 function PageLoader() {
   return (
@@ -37,16 +41,30 @@ function PublicRoute({ children }) {
   return user ? <Navigate to="/" replace /> : children;
 }
 
+// Guard: only owner/admin can access — redirect supervisor to /
+function OwnerOnlyRoute({ children }) {
+  const { isSupervisor } = useAuth();
+  return isSupervisor ? <Navigate to="/" replace /> : children;
+}
+
 function AppRoutes() {
+  const { isSupervisor } = useAuth();
+
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
         <Route element={<PrivateRoute><Layout /></PrivateRoute>}>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/bookings" element={<Bookings />} />
-          <Route path="/slots" element={<Slots />} />
+          {/* ── Supervisor landing page ── */}
+          <Route path="/" element={isSupervisor ? <SupervisorDashboard /> : <Dashboard />} />
+
+          {/* ── Owner-only pages ── */}
+          <Route path="/bookings" element={<OwnerOnlyRoute><Bookings /></OwnerOnlyRoute>} />
+          <Route path="/slots" element={<OwnerOnlyRoute><Slots /></OwnerOnlyRoute>} />
           <Route path="/scanner" element={<Scanner />} />
+          <Route path="/supervisors" element={<OwnerOnlyRoute><Supervisors /></OwnerOnlyRoute>} />
+          <Route path="/settings" element={<OwnerOnlyRoute><Settings /></OwnerOnlyRoute>} />
+          <Route path="/payouts" element={<OwnerOnlyRoute><Payouts /></OwnerOnlyRoute>} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

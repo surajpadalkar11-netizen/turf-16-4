@@ -81,6 +81,25 @@ function startBookingCron() {
           await markCompleted(booking);
         }
       }
+      // ─── 5. Cancel stale pending+unpaid bookings (payment abandoned) ───────────
+      // Any booking that stayed pending + unpaid for more than 15 minutes
+      // means the user opened the payment modal but never completed payment.
+      const staleCutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+      const { data: staleBookings, error: staleErr } = await supabase
+        .from('bookings')
+        .select('id')
+        .eq('status', 'pending')
+        .eq('payment_status', 'unpaid')
+        .lt('created_at', staleCutoff);
+
+      if (!staleErr && staleBookings && staleBookings.length > 0) {
+        const staleIds = staleBookings.map((b) => b.id);
+        await supabase
+          .from('bookings')
+          .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+          .in('id', staleIds);
+        console.log(`🧹 [BookingCron] Cancelled ${staleIds.length} stale pending+unpaid booking(s)`);
+      }
     } catch (err) {
       console.error('❌ [BookingCron] Unexpected error:', err.message);
     }
@@ -88,6 +107,7 @@ function startBookingCron() {
 
   console.log('⏰ Booking auto-status cron job started (runs every minute)');
 }
+
 
 // ─── Helpers ────────────────────────────────────────────────────────────
 

@@ -36,7 +36,7 @@ const mapTurf = (t) => ({
 exports.getTurfs = asyncHandler(async (req, res) => {
   const {
     city, sport, surface, amenities, minPrice, maxPrice, rating,
-    search, sort, page = 1, limit = 12, lat, lng, radius,
+    search, sort, page = 1, limit = 12, lat, lng, radius, date, time,
   } = req.query;
 
   // Nearby search via RPC
@@ -81,13 +81,66 @@ exports.getTurfs = asyncHandler(async (req, res) => {
   const { data, error, count } = await query;
   if (error) throw error;
 
+  let turfs = (data || []).map(mapTurf);
+
+  // ── Availability filter ─────────────────────────────────────────
+  // If caller passes ?date=YYYY-MM-DD&time=HH:MM, only return turfs
+  // whose slot at that time is still free AND whose operating hours cover it.
+  if (date && time) {
+    const [qh, qm] = time.split(':').map(Number);
+    const queryMins = qh * 60 + qm;
+    const turfIds = turfs.map((t) => t.id);
+
+    if (turfIds.length > 0) {
+      const { data: bookings } = await supabase
+        .from('bookings')
+        .select('turf_id, time_slots')
+        .in('turf_id', turfIds)
+        .eq('date', date)
+        .in('status', ['confirmed', 'pending']);
+
+      const unavailable = new Set();
+      (bookings || []).forEach((b) => {
+        (b.time_slots || []).forEach((s) => {
+          const [h1, m1] = s.start.split(':').map(Number);
+          const [h2, m2] = s.end.split(':').map(Number);
+          const sMin = h1 * 60 + m1;
+          let eMin = h2 * 60 + m2;
+          if (eMin <= sMin) eMin += 1440;
+          if (queryMins >= sMin && queryMins < eMin) unavailable.add(b.turf_id);
+        });
+      });
+
+      turfs = turfs.filter((t) => {
+        const [oh, om] = (t.operatingHours?.open || '00:00').split(':').map(Number);
+        const [ch, cm] = (t.operatingHours?.close || '23:59').split(':').map(Number);
+        const openMin = oh * 60 + om;
+        let closeMin = ch * 60 + cm;
+        if (closeMin <= openMin) closeMin += 1440;
+        const operates = queryMins >= openMin && queryMins < closeMin;
+        return operates && !unavailable.has(t.id);
+      });
+    }
+
+    const total = turfs.length;
+    const skip2 = (Number(page) - 1) * Number(limit);
+    const paged = turfs.slice(skip2, skip2 + Number(limit));
+    return res.json({
+      success: true, count: paged.length, total,
+      totalPages: Math.ceil(total / Number(limit)),
+      page: Number(page), turfs: paged,
+      searchContext: { date, time, availabilityFiltered: true },
+    });
+  }
+
   res.json({
     success: true,
-    count: (data || []).length,
+    count: turfs.length,
     total: count || 0,
     totalPages: Math.ceil((count || 0) / Number(limit)),
     page: Number(page),
-    turfs: (data || []).map(mapTurf),
+    turfs,
+    searchContext: null,
   });
 });
 

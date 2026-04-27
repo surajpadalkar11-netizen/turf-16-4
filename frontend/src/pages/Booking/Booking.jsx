@@ -1,76 +1,114 @@
-import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useBooking } from '../../context/BookingContext';
 import { useAuth } from '../../context/AuthContext';
-import { createBooking } from '../../services/bookingService';
+import { createBooking, abortBooking } from '../../services/bookingService';
 import { createPaymentOrder, verifyPayment } from '../../services/paymentService';
+import { payBookingWithWallet } from '../../services/walletService';
+import { getWallet } from '../../services/walletService';
 import { formatPrice, formatDate, formatTime } from '../../utils/formatters';
 import styles from './Booking.module.css';
 
-// Percentage-based advance options
+// Payment mode options
+const PAY_MODES = [
+  { id: 'full',    label: 'Full Payment',  icon: '💳', desc: 'Pay complete amount online' },
+  { id: 'wallet',  label: 'Pay with Wallet', icon: '💰', desc: 'Use your wallet balance' },
+  { id: 'advance', label: 'Partial Advance', icon: '⚡', desc: 'Pay part now, rest at venue' },
+];
+
 const ADVANCE_OPTIONS = [
-  { label: '25% Advance', percent: 25, description: 'Pay a quarter upfront' },
-  { label: '50% Advance', percent: 50, description: 'Pay half upfront' },
-  { label: 'Full Payment',  percent: 100, description: 'Pay complete amount' },
+  { label: '75%', percent: 75 },
+  { label: '50%', percent: 50 },
+  { label: '25%', percent: 25 },
+  { label: 'Custom', percent: -1 },
 ];
 
 function Booking() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const { bookingData, clearBooking, setPlayerCount } = useBooking();
-  const [notes, setNotes] = useState('');
+
+  const [notes, setNotes]     = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError]     = useState('');
   const [success, setSuccess] = useState(null);
-  const [selectedPercent, setSelectedPercent] = useState(100); // default full pay
 
-  if (!user) {
-    navigate('/login');
-    return null;
-  }
+  // Payment state
+  const [payMode, setPayMode]         = useState('full'); // 'full' | 'wallet' | 'advance'
+  const [advPercent, setAdvPercent]   = useState(50);     // for advance mode
+  const [customAmt, setCustomAmt]     = useState('');     // for custom advance
+  const [walletBal, setWalletBal]     = useState(user?.walletBalance || 0);
+  const [walletLoading, setWalletLoading] = useState(false);
 
-  // ── Success Screen ──────────────────────────────────────────────
+  // Fetch fresh wallet balance
+  useEffect(() => {
+    if (!user) return;
+    setWalletLoading(true);
+    getWallet()
+      .then(({ data }) => {
+        setWalletBal(data.balance);
+        if (updateUser) updateUser({ ...user, walletBalance: data.balance });
+      })
+      .catch(() => {})
+      .finally(() => setWalletLoading(false));
+  }, []);
+
+  if (!user) { navigate('/login'); return null; }
+
+  // ── Success Screen ─────────────────────────────────────────────────────────
   if (success) {
     const isPartial = success.paymentStatus === 'partially_paid';
     return (
-      <div className="container" style={{ padding: '60px 0', textAlign: 'center' }}>
-        <div style={{ maxWidth: 500, margin: '0 auto', background: '#ffffff', borderRadius: 20, padding: '48px 36px', boxShadow: '0 8px 40px rgba(0,0,0,0.10)', border: '1px solid #e2e8f0' }}>
-          <h2 style={{ color: isPartial ? '#f59e0b' : '#059669', marginBottom: 8 }}>
-            {isPartial ? 'Advance Paid Successfully' : 'Booking Confirmed!'}
+      <div className={styles.successPage}>
+        <div className={styles.successCard}>
+          <div className={styles.successIconWrap}>
+            <span className={styles.successIcon}>{isPartial ? '⚡' : '✅'}</span>
+          </div>
+          <h2 className={styles.successTitle}>
+            {isPartial ? 'Advance Paid!' : 'Booking Confirmed!'}
           </h2>
-          <p style={{ color: '#475569', marginBottom: 24 }}>
+          <p className={styles.successSubtitle}>
             {isPartial
-              ? `Please pay ₹${success.remainingAmount} remaining at the venue.`
-              : `A confirmation email has been sent to ${user.email}`}
+              ? `Pay ₹${success.remainingAmount} remaining at the venue`
+              : `Confirmation sent to ${user.email}`}
           </p>
 
-          {/* Payment Breakdown */}
-          <div style={{ background: '#f8fafc', borderRadius: 12, padding: '16px 20px', marginBottom: 20, border: '1px solid #e2e8f0', textAlign: 'left' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-              <span style={{ color: '#64748b', fontSize: 14 }}>Total Amount</span>
-              <span style={{ fontWeight: 700 }}>₹{success.totalAmount}</span>
+          {/* Booking code */}
+          <div className={styles.bookingCodeBox}>
+            <p className={styles.bookingCodeLabel}>Booking Code</p>
+            <p className={styles.bookingCode}>{success.bookingCode}</p>
+            <p className={styles.bookingCodeHint}>
+              {isPartial ? 'Show this + pay remaining at entrance' : 'Show at the entrance'}
+            </p>
+          </div>
+
+          {/* Payment breakdown */}
+          <div className={styles.successBreakdown}>
+            <div className={styles.successRow}>
+              <span>Total Amount</span>
+              <strong>₹{success.totalAmount}</strong>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-              <span style={{ color: '#10b981', fontSize: 14 }}>Paid Now</span>
-              <span style={{ fontWeight: 700, color: '#10b981' }}>₹{success.amountPaid}</span>
+            <div className={styles.successRow} style={{ color: '#10b981' }}>
+              <span>Paid Now</span>
+              <strong>₹{success.amountPaid}</strong>
             </div>
             {isPartial && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #e2e8f0', paddingTop: 8 }}>
-                <span style={{ color: '#f59e0b', fontSize: 14 }}>Due at Venue</span>
-                <span style={{ fontWeight: 700, color: '#f59e0b' }}>₹{success.remainingAmount}</span>
+              <div className={styles.successRow} style={{ color: '#f59e0b' }}>
+                <span>Due at Venue</span>
+                <strong>₹{success.remainingAmount}</strong>
               </div>
             )}
           </div>
 
-          <div style={{ background: '#f0fdf9', borderRadius: 12, padding: '20px 24px', marginBottom: 20, border: '1.5px solid #00d4aa' }}>
-            <p style={{ fontSize: 13, color: '#64748b', marginBottom: 6 }}>Your Booking Code</p>
-            <p style={{ fontSize: 28, fontWeight: 800, letterSpacing: 4, color: '#00a884', fontFamily: 'monospace', margin: 0 }}>{success.bookingCode}</p>
-            <p style={{ fontSize: 12, color: '#64748b', marginTop: 6 }}>{isPartial ? 'Show this + pay remaining at entrance' : 'Show this code at the entrance'}</p>
+          <div className={styles.successActions}>
+            <button className={styles.successBtn} onClick={() => navigate('/dashboard')}>
+              📅 My Bookings
+            </button>
+            <button className={styles.successBtnSecondary} onClick={() => navigate('/')}>
+              🏠 Home
+            </button>
           </div>
-          <button className={styles.payBtn} onClick={() => navigate('/dashboard')}>
-            Go to My Bookings
-          </button>
         </div>
       </div>
     );
@@ -78,30 +116,48 @@ function Booking() {
 
   if (!bookingData.turf || bookingData.selectedSlots.length === 0) {
     return (
-      <div className="container" style={{ padding: '80px 0', textAlign: 'center' }}>
-        <h2>No booking data</h2>
-        <p style={{ color: 'var(--color-text-secondary)', marginTop: 8 }}>Please select a turf and time slots first.</p>
-        <button onClick={() => navigate('/search')} className={styles.backBtn} style={{ marginTop: 24 }}>Browse Turfs</button>
+      <div className={styles.emptyPage}>
+        <div className={styles.emptyCard}>
+          <span style={{ fontSize: 52 }}>🏟️</span>
+          <h2>No Booking Data</h2>
+          <p>Please select a turf and time slots first.</p>
+          <button onClick={() => navigate('/search')} className={styles.browseBtn}>
+            Browse Turfs →
+          </button>
+        </div>
       </div>
     );
   }
 
   const totalAmount = bookingData.totalAmount;
-  const isFullPay = selectedPercent === 100;
-  const payNow = isFullPay ? totalAmount : Math.round((selectedPercent / 100) * totalAmount);
-  const remaining = totalAmount - payNow;
-
-  // Total duration in minutes and hours
   const totalDurationMin = bookingData.selectedSlots.reduce((s, sl) => s + (sl.durationMinutes || 60), 0);
   const totalHours = (totalDurationMin / 60).toFixed(1).replace('.0', '');
 
-  // ── Payment Handler ─────────────────────────────────────────────
+  // Compute payNow based on mode
+  let payNow = totalAmount;
+  if (payMode === 'wallet') {
+    payNow = Math.min(walletBal, totalAmount);
+  } else if (payMode === 'advance') {
+    if (advPercent === -1) {
+      payNow = Math.max(1, Math.min(parseInt(customAmt, 10) || 1, totalAmount));
+    } else {
+      payNow = Math.max(1, Math.round((advPercent / 100) * totalAmount));
+    }
+  }
+  const remaining = totalAmount - payNow;
+  const payPercent = Math.round((payNow / totalAmount) * 100);
+
+  const walletCoversAll = walletBal >= totalAmount;
+  const walletShortfall = payMode === 'wallet' ? Math.max(0, totalAmount - walletBal) : 0;
+
+  // ── Payment Handler ────────────────────────────────────────────────────────
   const handlePayment = async () => {
     setLoading(true);
     setError('');
+    let createdBookingId = null;
 
     try {
-      // Step 1: Create booking in DB
+      // Step 1: Create booking
       const { data: bookingRes } = await createBooking({
         turfId: id,
         date: bookingData.date,
@@ -110,25 +166,41 @@ function Booking() {
         notes,
         advanceAmount: payNow,
       });
+      createdBookingId = bookingRes.booking._id;
 
-      // Step 2: Create Razorpay order via backend
-      const { data: orderRes } = await createPaymentOrder(bookingRes.booking._id, payNow);
+      // ── Wallet payment path ────────────────────────────────────────────────
+      if (payMode === 'wallet') {
+        const { data: walletRes } = await payBookingWithWallet(createdBookingId, payNow);
+        // Update local wallet balance
+        setWalletBal(walletRes.walletBalance);
+        if (updateUser) updateUser({ ...user, walletBalance: walletRes.walletBalance });
+        clearBooking();
+        setSuccess({
+          bookingCode: `TRF-${createdBookingId.substring(0, 5).toUpperCase()}`,
+          totalAmount,
+          amountPaid: walletRes.booking.amountPaid,
+          remainingAmount: walletRes.booking.remainingAmount,
+          paymentStatus: walletRes.booking.paymentStatus,
+        });
+        return;
+      }
+
+      // ── Razorpay payment path ──────────────────────────────────────────────
+      const { data: orderRes } = await createPaymentOrder(createdBookingId, payNow);
 
       if (!window.Razorpay) {
-        setError('Payment gateway failed to load. Please refresh the page and try again.');
+        if (createdBookingId) abortBooking(createdBookingId).catch(() => {});
+        setError('Payment gateway failed to load. Please refresh and try again.');
         setLoading(false);
         return;
       }
 
-      const payLabel = isFullPay ? 'Full payment' : `${selectedPercent}% advance`;
-
-      // Step 3: Open Razorpay checkout modal
       const options = {
         key: orderRes.key,
         amount: orderRes.order.amount,
         currency: orderRes.order.currency,
         name: 'turf11',
-        description: `${payLabel} for ${bookingData.turf.name}`,
+        description: `Booking for ${bookingData.turf.name}`,
         order_id: orderRes.order.id,
         handler: async (response) => {
           try {
@@ -137,26 +209,23 @@ function Booking() {
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
             });
-
             clearBooking();
-
-            const bookingCode = `TRF-${bookingRes.booking._id.substring(0, 5).toUpperCase()}`;
             setSuccess({
-              bookingCode,
+              bookingCode: `TRF-${createdBookingId.substring(0, 5).toUpperCase()}`,
               totalAmount,
               amountPaid: verifyRes.data?.amountPaid || payNow,
               remainingAmount: verifyRes.data?.remainingAmount || remaining,
-              paymentStatus: verifyRes.data?.paymentStatus || (isFullPay ? 'paid' : 'partially_paid'),
-              turfName: bookingData.turf.name,
+              paymentStatus: verifyRes.data?.paymentStatus || (payMode === 'full' ? 'paid' : 'partially_paid'),
             });
           } catch {
-            setError('Payment verification failed. Please contact support with your payment ID: ' + response.razorpay_payment_id);
+            setError('Payment verification failed. Contact support with ID: ' + response.razorpay_payment_id);
           }
         },
         modal: {
           ondismiss: () => {
+            if (createdBookingId) abortBooking(createdBookingId).catch(() => {});
             setLoading(false);
-            setError('Payment was cancelled. You can try again.');
+            setError('Payment cancelled. Your slot has been released.');
           },
         },
         prefill: { name: user.name, email: user.email, contact: user.phone || '' },
@@ -165,174 +234,305 @@ function Booking() {
 
       const rzp = new window.Razorpay(options);
       rzp.on('payment.failed', (response) => {
+        if (createdBookingId) abortBooking(createdBookingId).catch(() => {});
         setError(`Payment failed: ${response.error.description}`);
         setLoading(false);
       });
       rzp.open();
     } catch (err) {
+      if (createdBookingId) abortBooking(createdBookingId).catch(() => {});
       setError(err.response?.data?.message || 'Booking failed. Please try again.');
       setLoading(false);
     }
   };
 
-  // ── UI ──────────────────────────────────────────────────────────
+  // ── UI ─────────────────────────────────────────────────────────────────────
   return (
-    <div className={`container ${styles.page}`}>
-      <h1 className={styles.title}>Confirm Your Booking</h1>
+    <div className={styles.page}>
+      <div className={styles.container}>
 
-      <div className={styles.layout}>
-        <div className={styles.details}>
-          <div className={styles.card}>
-            <h3>Turf Details</h3>
-            <p className={styles.turfName}>{bookingData.turf.name}</p>
-            <p className={styles.turfAddr}>{bookingData.turf.address?.city}, {bookingData.turf.address?.state}</p>
+        {/* Page Header */}
+        <div className={styles.pageHeader}>
+          <button className={styles.backBtn} onClick={() => navigate(-1)}>← Back</button>
+          <div>
+            <h1 className={styles.pageTitle}>Confirm Booking</h1>
+            <p className={styles.pageSubtitle}>{bookingData.turf.name}</p>
           </div>
+        </div>
 
+        {/* ── SINGLE COLUMN STACK (top to bottom) ── */}
+        <div className={styles.stack}>
+
+          {/* 1. Turf Summary */}
           <div className={styles.card}>
-            <h3>Booking Details</h3>
-            <div className={styles.row}>
-              <span>Date</span>
-              <span>{formatDate(bookingData.date)}</span>
+            <div className={styles.cardHeader}>
+              <span className={styles.cardIcon}>🏟️</span>
+              <h2 className={styles.cardTitle}>Turf Details</h2>
             </div>
-            <div className={styles.row}>
-              <span>Time Slots</span>
-              <div className={styles.slotList}>
-                {bookingData.selectedSlots.map((s) => {
-                  const isPeak = s.priceUsed && bookingData.turf.peakPricePerHour && s.priceUsed === bookingData.turf.peakPricePerHour;
-                  const dur = s.durationMinutes || 60;
-                  return (
-                    <span key={s.start} className={`${styles.slotChip} ${isPeak ? styles.peakSlot : ''}`}>
-                      {formatTime(s.start)} – {formatTime(s.end)}
-                      {dur !== 60 && <span className={styles.halfBadge}>{dur}m</span>}
-                      {isPeak && <span className={styles.peakBadge}>🌙</span>}
-                    </span>
-                  );
-                })}
+            <div className={styles.turfSummary}>
+              <div className={styles.turfName}>{bookingData.turf.name}</div>
+              <div className={styles.turfAddr}>
+                📍 {[bookingData.turf.address?.city, bookingData.turf.address?.state].filter(Boolean).join(', ') || 'Location not set'}
               </div>
             </div>
-            <div className={styles.row}>
-              <span>Total Duration</span>
-              <span><strong>{totalDurationMin} min</strong> ({totalHours} hr{totalHours !== '1' ? 's' : ''})</span>
+          </div>
+
+          {/* 2. Booking Details */}
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <span className={styles.cardIcon}>📅</span>
+              <h2 className={styles.cardTitle}>Booking Details</h2>
+            </div>
+            <div className={styles.detailRows}>
+              <div className={styles.detailRow}>
+                <span className={styles.detailLabel}>Date</span>
+                <span className={styles.detailValue}>{formatDate(bookingData.date)}</span>
+              </div>
+              <div className={styles.detailRow}>
+                <span className={styles.detailLabel}>Duration</span>
+                <span className={styles.detailValue}>
+                  <strong>{totalDurationMin} min</strong> ({totalHours} hr{totalHours !== '1' ? 's' : ''})
+                </span>
+              </div>
+              <div className={styles.detailRow}>
+                <span className={styles.detailLabel}>Rate</span>
+                <span className={styles.detailValue}>{formatPrice(bookingData.turf.pricePerHour)}/hr</span>
+              </div>
+              <div className={styles.detailRow}>
+                <span className={styles.detailLabel}>Time Slots</span>
+                <div className={styles.slotsWrap}>
+                  {bookingData.selectedSlots.map((s) => {
+                    const isPeak = s.priceUsed && bookingData.turf.peakPricePerHour && s.priceUsed === bookingData.turf.peakPricePerHour;
+                    return (
+                      <span key={s.start} className={`${styles.slotChip} ${isPeak ? styles.peakSlot : ''}`}>
+                        {formatTime(s.start)} – {formatTime(s.end)}
+                        {isPeak && <span className={styles.peakDot}>🌙</span>}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           </div>
 
+          {/* 3. Player Details */}
           <div className={styles.card}>
-            <h3>Player Details</h3>
-            <div className={styles.playerRow}>
-              <label>Number of Players</label>
-              <input
-                type="number"
-                min="1"
-                max="30"
-                value={bookingData.playerCount}
-                onChange={(e) => setPlayerCount(Number(e.target.value))}
-                className={styles.playerInput}
-              />
+            <div className={styles.cardHeader}>
+              <span className={styles.cardIcon}>⚽</span>
+              <h2 className={styles.cardTitle}>Player Details</h2>
             </div>
-            <div className={styles.noteField}>
-              <label>Special Requests (Optional)</label>
+            <div className={styles.fieldGroup}>
+              <label className={styles.fieldLabel}>Number of Players</label>
+              <div className={styles.playerCounter}>
+                <button
+                  type="button"
+                  className={styles.counterBtn}
+                  onClick={() => setPlayerCount(Math.max(1, bookingData.playerCount - 1))}
+                >−</button>
+                <span className={styles.counterVal}>{bookingData.playerCount}</span>
+                <button
+                  type="button"
+                  className={styles.counterBtn}
+                  onClick={() => setPlayerCount(Math.min(30, bookingData.playerCount + 1))}
+                >+</button>
+              </div>
+            </div>
+            <div className={styles.fieldGroup} style={{ marginTop: 16 }}>
+              <label className={styles.fieldLabel}>Special Requests <span className={styles.optionalTag}>(Optional)</span></label>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Any special requirements..."
                 className={styles.textarea}
                 rows={3}
+                id="booking-notes"
               />
             </div>
           </div>
 
-          {/* ── Payment Options Section ── */}
+          {/* 4. Amount Summary */}
+          <div className={styles.amtSummaryCard}>
+            <div className={styles.amtRow}>
+              <span>Price per hour</span>
+              <span>{formatPrice(bookingData.turf.pricePerHour)}</span>
+            </div>
+            <div className={styles.amtRow}>
+              <span>Duration</span>
+              <span>{totalDurationMin} min ({totalHours}h)</span>
+            </div>
+            <div className={styles.amtRowTotal}>
+              <strong>Total Amount</strong>
+              <strong className={styles.totalPrice}>{formatPrice(totalAmount)}</strong>
+            </div>
+          </div>
+
+          {/* 5. Payment Method */}
           <div className={styles.card}>
-            <h3>Payment Options</h3>
-            <p className={styles.paymentHint}>Choose how much you'd like to pay now:</p>
-            <div className={styles.paymentOptionsGrid}>
-              {ADVANCE_OPTIONS.map((opt) => {
-                const amt = opt.percent === 100 ? totalAmount : Math.round((opt.percent / 100) * totalAmount);
-                const isActive = selectedPercent === opt.percent;
+            <div className={styles.cardHeader}>
+              <span className={styles.cardIcon}>💳</span>
+              <h2 className={styles.cardTitle}>Choose Payment Method</h2>
+            </div>
+
+            {/* Mode cards */}
+            <div className={styles.payModeGrid}>
+              {PAY_MODES.map((pm) => {
+                const isActive = payMode === pm.id;
+                const isDisabled = pm.id === 'wallet' && walletBal <= 0;
                 return (
                   <button
-                    key={opt.percent}
-                    className={`${styles.payOptionCard} ${isActive ? styles.payOptionActive : ''}`}
-                    onClick={() => setSelectedPercent(opt.percent)}
-                    id={`pay-option-${opt.percent}`}
+                    key={pm.id}
+                    className={`${styles.payModeCard} ${isActive ? styles.payModeActive : ''} ${isDisabled ? styles.payModeDisabled : ''}`}
+                    onClick={() => !isDisabled && setPayMode(pm.id)}
+                    id={`paymode-${pm.id}`}
+                    disabled={isDisabled}
                   >
-                    <span className={styles.payOptionLabel}>{opt.label}</span>
-                    <span className={styles.payOptionAmount}>{formatPrice(amt)}</span>
-                    <span className={styles.payOptionDesc}>{opt.description}</span>
-                    {isActive && <span className={styles.payOptionCheck}>✓</span>}
+                    <span className={styles.payModeIcon}>{pm.icon}</span>
+                    <div className={styles.payModeText}>
+                      <span className={styles.payModeLabel}>{pm.label}</span>
+                      <span className={styles.payModeDesc}>
+                        {pm.id === 'wallet'
+                          ? walletLoading
+                            ? 'Loading...'
+                            : walletBal > 0
+                              ? `Balance: ₹${walletBal.toLocaleString('en-IN')}`
+                              : 'No balance — Add funds'
+                          : pm.desc}
+                      </span>
+                    </div>
+                    {isActive && <span className={styles.payModeCheck}>✓</span>}
                   </button>
                 );
               })}
             </div>
 
-            {selectedPercent < 100 && (
-              <div className={styles.remainderNote}>
-                <span>
-                  Remaining <strong>{formatPrice(remaining)}</strong> ({100 - selectedPercent}%) to be paid at the venue before playing.
-                </span>
+            {/* Wallet shortfall notice */}
+            {payMode === 'wallet' && walletShortfall > 0 && (
+              <div className={styles.walletShortNote}>
+                <span>⚠️</span>
+                <div>
+                  <div className={styles.walletShortTitle}>
+                    Wallet covers ₹{payNow} — ₹{walletShortfall} remains
+                  </div>
+                  <div className={styles.walletShortDesc}>
+                    Pay remaining ₹{walletShortfall} in cash at the venue, or{' '}
+                    <Link to="/wallet" className={styles.topUpLink}>top up wallet</Link>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Wallet zero notice */}
+            {payMode === 'wallet' && walletBal <= 0 && (
+              <div className={styles.walletEmptyNote}>
+                💰 Your wallet is empty.{' '}
+                <Link to="/wallet" className={styles.topUpLink}>Add funds →</Link>
+              </div>
+            )}
+
+            {/* Advance options */}
+            {payMode === 'advance' && (
+              <div className={styles.advanceBlock}>
+                <p className={styles.advanceHint}>How much to pay online now?</p>
+                <div className={styles.advanceOptions}>
+                  {ADVANCE_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.percent}
+                      className={`${styles.advBtn} ${advPercent === opt.percent ? styles.advBtnActive : ''}`}
+                      onClick={() => { setAdvPercent(opt.percent); if (opt.percent !== -1) setCustomAmt(''); }}
+                    >
+                      {opt.label}
+                      {opt.percent !== -1 && (
+                        <span className={styles.advAmt}>₹{Math.round((opt.percent / 100) * totalAmount)}</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+                {advPercent === -1 && (
+                  <div className={styles.customInputWrap}>
+                    <span className={styles.rupeeSign}>₹</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={totalAmount}
+                      value={customAmt}
+                      onChange={(e) => setCustomAmt(e.target.value)}
+                      placeholder={`1 – ${totalAmount}`}
+                      className={styles.customInput}
+                      id="custom-advance-amount"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Cash note */}
+            {remaining > 0 && payMode !== 'wallet' && (
+              <div className={styles.cashNote}>
+                <span>💵</span>
+                <div>
+                  <div className={styles.cashNoteTitle}>₹{remaining} due in cash at venue</div>
+                  <div className={styles.cashNoteDesc}>Bring exact change. Show booking code at entrance.</div>
+                </div>
+              </div>
+            )}
+
+            {/* Split visualiser */}
+            {remaining > 0 && payMode !== 'wallet' && (
+              <div className={styles.splitBar}>
+                <div className={styles.splitOnline} style={{ width: `${payPercent}%` }} title={`Online: ₹${payNow}`} />
+                <div className={styles.splitCash} style={{ width: `${100 - payPercent}%` }} title={`Cash: ₹${remaining}`} />
+              </div>
+            )}
+            {remaining > 0 && payMode !== 'wallet' && (
+              <div className={styles.splitLegend}>
+                <span className={styles.splitDotOnline} />
+                Online: <strong>₹{payNow}</strong>
+                <span className={styles.splitDotCash} style={{ marginLeft: 14 }} />
+                Cash: <strong>₹{remaining}</strong>
               </div>
             )}
           </div>
-        </div>
 
-        <div className={styles.summaryCard}>
-          <h3>Payment Summary</h3>
-          <div className={styles.row}>
-            <span>Price per hour</span>
-            <span>{formatPrice(bookingData.turf.pricePerHour)}</span>
-          </div>
-          <div className={styles.row}>
-            <span>Duration</span>
-            <span>{totalDurationMin} min</span>
-          </div>
-          <div className={`${styles.row} ${styles.totalRow}`}>
-            <strong>Total Amount</strong>
-            <strong className={styles.totalAmount}>{formatPrice(totalAmount)}</strong>
-          </div>
+          {/* 6. CTA */}
+          <div className={styles.ctaBox}>
+            {error && <div className={styles.errorBox}>⚠️ {error}</div>}
 
-          {selectedPercent < 100 && (
-            <>
-              <div style={{ borderTop: '1px dashed #e2e8f0', margin: '12px 0' }} />
-              <div className={styles.row}>
-                <span style={{ color: '#10b981', fontWeight: 600 }}>Pay Now ({selectedPercent}%)</span>
-                <span style={{ color: '#10b981', fontWeight: 700 }}>{formatPrice(payNow)}</span>
-              </div>
-              <div className={styles.row}>
-                <span style={{ color: '#f59e0b', fontWeight: 600 }}>Due at Venue</span>
-                <span style={{ color: '#f59e0b', fontWeight: 700 }}>{formatPrice(remaining)}</span>
-              </div>
-            </>
-          )}
-
-          {error && <p className={styles.error}>{error}</p>}
-
-          <button className={styles.payBtn} onClick={handlePayment} disabled={loading} id="pay-btn">
-            {loading
-              ? 'Processing...'
-              : selectedPercent === 100
-              ? `Pay Full ${formatPrice(totalAmount)}`
-              : `Pay ${selectedPercent}% – ${formatPrice(payNow)}`}
-          </button>
-          <p className={styles.secure}>Secured by Razorpay</p>
-
-          {/* Payment breakdown visual */}
-          {selectedPercent < 100 && (
-            <div className={styles.progressBar}>
-              <div
-                className={styles.progressFill}
-                style={{ width: `${selectedPercent}%` }}
-              />
-              <div className={styles.progressLabels}>
-                <span style={{ color: '#10b981', fontSize: 11, fontWeight: 700 }}>
-                  {selectedPercent}% now
+            <div className={styles.ctaSummary}>
+              <div>
+                <span className={styles.ctaLabel}>
+                  {payMode === 'wallet' ? '💰 From Wallet' : payMode === 'full' ? '💳 Pay Online' : '⚡ Pay Online Now'}
                 </span>
-                <span style={{ color: '#f59e0b', fontSize: 11, fontWeight: 700 }}>
-                  {100 - selectedPercent}% at venue
-                </span>
+                <span className={styles.ctaAmount}>{formatPrice(payNow)}</span>
               </div>
+              {remaining > 0 && payMode !== 'wallet' && (
+                <span className={styles.ctaCash}>+ ₹{remaining} cash at venue</span>
+              )}
+              {payMode === 'wallet' && remaining > 0 && (
+                <span className={styles.ctaCash}>+ ₹{remaining} cash at venue</span>
+              )}
             </div>
-          )}
-        </div>
+
+            <button
+              className={styles.payBtn}
+              onClick={handlePayment}
+              disabled={loading || (payMode === 'wallet' && walletBal <= 0)}
+              id="confirm-pay-btn"
+            >
+              {loading ? (
+                <><span className={styles.btnSpinner} /> Processing…</>
+              ) : payMode === 'wallet' ? (
+                `💰 Pay ₹${payNow} from Wallet`
+              ) : payNow >= totalAmount ? (
+                `💳 Pay Full ${formatPrice(totalAmount)}`
+              ) : (
+                `💳 Pay ${formatPrice(payNow)} Online`
+              )}
+            </button>
+
+            <p className={styles.secureNote}>🔒 100% Secure · Powered by Razorpay & turf11 Wallet</p>
+          </div>
+
+        </div>{/* end .stack */}
       </div>
     </div>
   );

@@ -23,6 +23,28 @@
 
 .newBooking:hover { background: var(--color-primary-hover); transform: translateY(-1px); }
 
+.walletBadge {
+  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+  color: #fff !important;
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-size: var(--font-sm);
+  transition: all var(--transition-fast);
+  display: inline-block;
+  box-shadow: 0 2px 8px rgba(124,58,237,0.25);
+}
+.walletBadge:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(124,58,237,0.35); }
+
+.walletUsed {
+  font-size: 11px;
+  font-weight: 700;
+  color: #7c3aed;
+  background: rgba(124,58,237,0.08);
+  padding: 3px 9px;
+  border-radius: 8px;
+}
+
 .filters {
   display: flex;
   gap: var(--space-sm);

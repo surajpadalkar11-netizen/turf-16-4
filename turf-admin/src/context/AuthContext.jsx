@@ -14,6 +14,9 @@ export function AuthProvider({ children }) {
     try { return JSON.parse(localStorage.getItem('turfowner_selected_turf')); } catch { return null; }
   });
 
+  // Derived: is the currently logged-in session a supervisor?
+  const isSupervisor = user?.role === 'supervisor';
+
   const login = async (email, password) => {
     const { data } = await api.post('/turf-owner/login', { email, password });
     localStorage.setItem('turfowner_token', data.token);
@@ -21,6 +24,14 @@ export function AuthProvider({ children }) {
     localStorage.setItem('turfowner_turfs', JSON.stringify(data.turfs));
     const firstTurf = data.turfs?.[0] || null;
     localStorage.setItem('turfowner_selected_turf', JSON.stringify(firstTurf));
+
+    // Store supervisor turf id if applicable
+    if (data.supervisorTurfId) {
+      localStorage.setItem('turfowner_supervisor_turf_id', data.supervisorTurfId);
+    } else {
+      localStorage.removeItem('turfowner_supervisor_turf_id');
+    }
+
     setUser(data.user);
     setTurfs(data.turfs || []);
     setSelectedTurf(firstTurf);
@@ -28,21 +39,27 @@ export function AuthProvider({ children }) {
   };
 
   const logout = () => {
-    ['turfowner_token','turfowner_user','turfowner_turfs','turfowner_selected_turf'].forEach(k =>
-      localStorage.removeItem(k)
-    );
+    [
+      'turfowner_token',
+      'turfowner_user',
+      'turfowner_turfs',
+      'turfowner_selected_turf',
+      'turfowner_supervisor_turf_id',
+    ].forEach((k) => localStorage.removeItem(k));
     setUser(null);
     setTurfs([]);
     setSelectedTurf(null);
   };
 
   const switchTurf = (turf) => {
+    // Supervisors are locked to their assigned turf
+    if (isSupervisor) return;
     setSelectedTurf(turf);
     localStorage.setItem('turfowner_selected_turf', JSON.stringify(turf));
   };
 
   return (
-    <AuthContext.Provider value={{ user, turfs, selectedTurf, login, logout, switchTurf }}>
+    <AuthContext.Provider value={{ user, turfs, selectedTurf, login, logout, switchTurf, isSupervisor }}>
       {children}
     </AuthContext.Provider>
   );

@@ -3,22 +3,33 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard, CalendarDays, Grid3X3, ScanLine,
-  LogOut, ChevronDown, Menu, X, Building2,
+  LogOut, ChevronDown, Menu, X, Building2, Users,
+  ShieldCheck, Settings as SettingsIcon, Wallet,
 } from 'lucide-react';
 import styles from './Layout.module.css';
 
-const NAV = [
+const OWNER_NAV = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/bookings', label: 'Bookings', icon: CalendarDays },
   { to: '/slots', label: 'Slot Manager', icon: Grid3X3 },
   { to: '/scanner', label: 'QR Scanner', icon: ScanLine },
+  { to: '/supervisors', label: 'Supervisors', icon: Users },
+  { to: '/payouts', label: 'Payouts', icon: Wallet },
+  { to: '/settings', label: 'Settings', icon: SettingsIcon },
+];
+
+const SUPERVISOR_NAV = [
+  { to: '/', label: 'Today\'s View', icon: LayoutDashboard, end: true },
+  { to: '/scanner', label: 'QR Scanner', icon: ScanLine },
 ];
 
 export default function Layout() {
-  const { user, turfs, selectedTurf, logout, switchTurf } = useAuth();
+  const { user, turfs, selectedTurf, logout, switchTurf, isSupervisor } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [turfDropdown, setTurfDropdown] = useState(false);
+
+  const NAV = isSupervisor ? SUPERVISOR_NAV : OWNER_NAV;
 
   useEffect(() => {
     const onResize = () => { if (window.innerWidth >= 900) setMobileOpen(false); };
@@ -44,10 +55,20 @@ export default function Layout() {
           <div className={styles.logoIcon}>⛳</div>
           <div>
             <div className={styles.logoName}>turf11</div>
-            <div className={styles.logoTag}>Owner Panel</div>
+            <div className={styles.logoTag}>
+              {isSupervisor ? 'Supervisor' : 'Owner Panel'}
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Supervisor badge */}
+      {isSupervisor && (
+        <div className={styles.supervisorStrip}>
+          <ShieldCheck size={13} />
+          <span>Read-only Supervisor</span>
+        </div>
+      )}
 
       {/* Turf Selector */}
       {turfs.length > 0 && (
@@ -55,18 +76,18 @@ export default function Layout() {
           <div className={styles.turfSelectorLabel}>Active Turf</div>
           <div
             className={styles.turfDropdownTrigger}
-            style={{ cursor: turfs.length > 1 ? 'pointer' : 'default' }}
-            onClick={() => turfs.length > 1 && setTurfDropdown(p => !p)}
+            style={{ cursor: (!isSupervisor && turfs.length > 1) ? 'pointer' : 'default' }}
+            onClick={() => !isSupervisor && turfs.length > 1 && setTurfDropdown(p => !p)}
           >
             <div className={styles.turfDropdownRow}>
               <Building2 size={13} color="var(--primary)" />
               <span className={styles.turfName}>{selectedTurf?.name || 'Select Turf'}</span>
             </div>
-            {turfs.length > 1 && (
+            {!isSupervisor && turfs.length > 1 && (
               <ChevronDown size={13} color="var(--text-muted)"
                 style={{ transform: turfDropdown ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }} />
             )}
-            {turfDropdown && turfs.length > 1 && (
+            {turfDropdown && !isSupervisor && turfs.length > 1 && (
               <div className={styles.turfMenu}>
                 {turfs.map(t => (
                   <div
@@ -108,7 +129,9 @@ export default function Layout() {
           </div>
           <div className={styles.userText}>
             <div className={styles.userName}>{user?.name}</div>
-            <div className={styles.userRole}>Owner</div>
+            <div className={styles.userRole}>
+              {isSupervisor ? 'Supervisor' : 'Owner'}
+            </div>
           </div>
         </div>
         <button className={`btn btn-ghost ${styles.logoutBtn}`} onClick={handleLogout}>

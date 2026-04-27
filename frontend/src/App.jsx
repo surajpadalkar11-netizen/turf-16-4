@@ -12,6 +12,7 @@ const Register = lazy(() => import('./pages/Auth/Register'));
 const UserDashboard = lazy(() => import('./pages/Dashboard/UserDashboard'));
 const AdminDashboard = lazy(() => import('./pages/Dashboard/AdminDashboard'));
 const Profile = lazy(() => import('./pages/Profile/Profile'));
+const Wallet = lazy(() => import('./pages/Wallet/Wallet'));
 const NotFound = lazy(() => import('./pages/NotFound/NotFound'));
 
 function PageLoader() {
@@ -44,6 +45,7 @@ function App() {
         <Route path="/dashboard" element={<Suspense fallback={<PageLoader />}><UserDashboard /></Suspense>} />
         <Route path="/admin" element={<Suspense fallback={<PageLoader />}><AdminDashboard /></Suspense>} />
         <Route path="/profile" element={<Suspense fallback={<PageLoader />}><Profile /></Suspense>} />
+        <Route path="/wallet" element={<Suspense fallback={<PageLoader />}><Wallet /></Suspense>} />
         <Route path="*" element={<Suspense fallback={<PageLoader />}><NotFound /></Suspense>} />
       </Route>
     </Routes>

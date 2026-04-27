@@ -55,6 +55,11 @@ function Navbar() {
         <div className={styles.navLinks}>
           <Link to="/search" className={`${styles.navLink} ${isActive('/search')}`}>Explore</Link>
           {user && <Link to="/dashboard" className={`${styles.navLink} ${isActive('/dashboard')}`}>My Bookings</Link>}
+          {user && (
+            <Link to="/wallet" className={`${styles.navLink} ${isActive('/wallet')} ${styles.walletLink}`}>
+              💰 {user.walletBalance > 0 ? `₹${user.walletBalance.toLocaleString('en-IN')}` : 'Wallet'}
+            </Link>
+          )}
           {user?.role === 'admin' && <Link to="/admin" className={`${styles.navLink} ${isActive('/admin')}`}>Admin</Link>}
         </div>
 
@@ -75,6 +80,7 @@ function Navbar() {
               {menuOpen && (
                 <div className={styles.dropdown}>
                   <Link to="/profile" className={styles.dropItem} onClick={() => setMenuOpen(false)}>👤 Profile</Link>
+                  <Link to="/wallet" className={styles.dropItem} onClick={() => setMenuOpen(false)}>💰 My Wallet{user.walletBalance > 0 ? ` · ₹${user.walletBalance.toLocaleString('en-IN')}` : ''}</Link>
                   <Link to="/dashboard" className={styles.dropItem} onClick={() => setMenuOpen(false)}>📅 My Bookings</Link>
                   {user?.role === 'admin' && <Link to="/admin" className={styles.dropItem} onClick={() => setMenuOpen(false)}>⚙️ Admin Panel</Link>}
                   <button className={styles.dropItem} onClick={handleLogout} style={{ color: '#f43f5e' }}>🚪 Logout</button>
@@ -106,6 +112,7 @@ function Navbar() {
           <div className={styles.mobileMenu}>
             <Link to="/search" className={styles.mobileLink} onClick={() => setMenuOpen(false)}>🔍 Explore</Link>
             {user && <Link to="/dashboard" className={styles.mobileLink} onClick={() => setMenuOpen(false)}>📅 My Bookings</Link>}
+            {user && <Link to="/wallet" className={styles.mobileLink} onClick={() => setMenuOpen(false)}>💰 My Wallet{user.walletBalance > 0 ? ` · ₹${user.walletBalance.toLocaleString('en-IN')}` : ''}</Link>}
             {user?.role === 'admin' && <Link to="/admin" className={styles.mobileLink} onClick={() => setMenuOpen(false)}>⚙️ Admin</Link>}
             {!user && <>
               <Link to="/login" className={styles.mobileLink} onClick={() => setMenuOpen(false)}>🔑 Sign In</Link>

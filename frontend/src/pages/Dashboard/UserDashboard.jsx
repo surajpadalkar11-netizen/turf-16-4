@@ -90,7 +90,14 @@ function UserDashboard() {
     <div className={`container ${styles.page}`}>
       <div className={styles.header}>
         <h1>{activeTab === 'bookings' ? 'My Bookings' : 'My Reviews'}</h1>
-        <Link to="/search" className={styles.newBooking}>+ Book a Turf</Link>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          {user.walletBalance > 0 && (
+            <Link to="/wallet" className={styles.walletBadge}>
+              💰 Wallet: ₹{Number(user.walletBalance).toLocaleString('en-IN')}
+            </Link>
+          )}
+          <Link to="/search" className={styles.newBooking}>+ Book a Turf</Link>
+        </div>
       </div>
 
       {/* Tab switcher */}
@@ -156,6 +163,9 @@ function UserDashboard() {
                         <span className={`${styles.status} ${getStatusClass(b.status)}`}>{b.status === 'playing' ? '🏃 Playing' : b.status}</span>
                       )}
                       <p className={styles.bookingAmount}>{formatPrice(b.totalAmount)}</p>
+                      {b.walletAmountUsed > 0 && (
+                        <span className={styles.walletUsed}>💰 ₹{b.walletAmountUsed} wallet</span>
+                      )}
                       {(b.status === 'pending' || b.status === 'confirmed') && (
                         <button className={styles.cancelBtn} onClick={() => handleCancel(b._id)}>Cancel</button>
                       )}
